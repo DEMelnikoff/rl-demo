@@ -1,110 +1,103 @@
-// task.js — Two-step task environment
+// task.js — state constants, transition logic, reward function
 
-export const STATES = { S1: 0, S2A: 1, S2B: 2 };
-export const STATE_NAMES = ['S1', 'S2a', 'S2b'];
-export const ACTIONS = { A1: 0, A2: 1 };
-export const GOALS = { APPLE: 0, ORANGE: 1 };
-
-// Transition probabilities T[s][a] = [{state, prob}, ...]
-export const TRUE_TRANSITIONS = {
-  standard: {
-    [STATES.S1]: {
-      [ACTIONS.A1]: [{ state: STATES.S2A, prob: 0.7 }, { state: STATES.S2B, prob: 0.3 }],
-      [ACTIONS.A2]: [{ state: STATES.S2B, prob: 0.7 }, { state: STATES.S2A, prob: 0.3 }],
-    },
-    [STATES.S2A]: {
-      [ACTIONS.A1]: [{ state: STATES.S2A, prob: 1.0 }], // terminal, handled specially
-      [ACTIONS.A2]: [{ state: STATES.S2A, prob: 1.0 }],
-    },
-    [STATES.S2B]: {
-      [ACTIONS.A1]: [{ state: STATES.S2B, prob: 1.0 }],
-      [ACTIONS.A2]: [{ state: STATES.S2B, prob: 1.0 }],
-    },
-  },
-  flipped: {
-    [STATES.S1]: {
-      [ACTIONS.A1]: [{ state: STATES.S2B, prob: 0.7 }, { state: STATES.S2A, prob: 0.3 }],
-      [ACTIONS.A2]: [{ state: STATES.S2A, prob: 0.7 }, { state: STATES.S2B, prob: 0.3 }],
-    },
-    [STATES.S2A]: {
-      [ACTIONS.A1]: [{ state: STATES.S2A, prob: 1.0 }],
-      [ACTIONS.A2]: [{ state: STATES.S2A, prob: 1.0 }],
-    },
-    [STATES.S2B]: {
-      [ACTIONS.A1]: [{ state: STATES.S2B, prob: 1.0 }],
-      [ACTIONS.A2]: [{ state: STATES.S2B, prob: 1.0 }],
-    },
-  },
+export const STATES = {
+  S_CHOICE: 0,
+  S_RED_PLANET: 1,
+  S_GREEN_PLANET: 2,
+  S_APPLE: 3,
+  S_SALAD: 4,
 };
 
-// Reward probabilities: R[s][a] = {apple: p, orange: p}
-export const REWARD_PROBS = {
-  [STATES.S2A]: {
-    [ACTIONS.A1]: { apple: 0.8, orange: 0.2 },
-    [ACTIONS.A2]: { orange: 0.7, apple: 0.3 },
-  },
-  [STATES.S2B]: {
-    [ACTIONS.A1]: { orange: 0.8, apple: 0.2 },
-    [ACTIONS.A2]: { apple: 0.7, orange: 0.3 },
-  },
+export const STATE_NAMES = ['S_choice', 'S_red_planet', 'S_green_planet', 'S_apple', 'S_salad'];
+export const STATE_LABELS = ['🚀 Choice', '🔴🪐 Red Planet', '🟢🪐 Green Planet', '🍎 Apple', '🥗 Salad'];
+
+export const ACTIONS = {
+  RED_ROCKET: 'red',
+  GREEN_ROCKET: 'green',
 };
 
-export class TwoStepTask {
-  constructor() {
-    this.transitionMode = 'standard';
-    this.goal = GOALS.APPLE;
+export const N_STATES = 5;
+
+/**
+ * Returns the next state given current state, action, and transition config.
+ * transitionConfig: { redPlanetOutcome: 'apple'|'salad', greenPlanetOutcome: 'apple'|'salad' }
+ */
+export function getNextState(state, action, transitionConfig) {
+  const { redPlanetOutcome, greenPlanetOutcome } = transitionConfig;
+
+  if (state === STATES.S_CHOICE) {
+    if (action === ACTIONS.RED_ROCKET) return STATES.S_RED_PLANET;
+    if (action === ACTIONS.GREEN_ROCKET) return STATES.S_GREEN_PLANET;
   }
 
-  setGoal(goal) {
-    this.goal = goal;
+  if (state === STATES.S_RED_PLANET) {
+    return redPlanetOutcome === 'apple' ? STATES.S_APPLE : STATES.S_SALAD;
   }
 
-  setTransitionMode(mode) {
-    this.transitionMode = mode;
+  if (state === STATES.S_GREEN_PLANET) {
+    return greenPlanetOutcome === 'apple' ? STATES.S_APPLE : STATES.S_SALAD;
   }
 
-  // Sample next state from S1 given action
-  sampleS1Transition(action) {
-    const transitions = TRUE_TRANSITIONS[this.transitionMode][STATES.S1][action];
-    const r = Math.random();
-    let cumProb = 0;
-    for (const t of transitions) {
-      cumProb += t.prob;
-      if (r < cumProb) return t.state;
-    }
-    return transitions[transitions.length - 1].state;
-  }
-
-  // Sample reward outcome at S2 state given action
-  sampleReward(s2State, action) {
-    const probs = REWARD_PROBS[s2State][action];
-    const r = Math.random();
-    let outcome;
-    if (r < probs.apple) {
-      outcome = GOALS.APPLE;
-    } else {
-      outcome = GOALS.ORANGE;
-    }
-    const reward = outcome === this.goal ? 1 : 0;
-    return { outcome, reward };
-  }
-
-  // Get expected reward for MB planning given current goal
-  getExpectedReward(s2State, action) {
-    const probs = REWARD_PROBS[s2State][action];
-    if (this.goal === GOALS.APPLE) {
-      return probs.apple;
-    } else {
-      return probs.orange !== undefined ? probs.orange : (1 - probs.apple);
-    }
-  }
-
-  // Get true transition prob from S1 given action to s2State
-  getTrueTransitionProb(action, s2State) {
-    const transitions = TRUE_TRANSITIONS[this.transitionMode][STATES.S1][action];
-    for (const t of transitions) {
-      if (t.state === s2State) return t.prob;
-    }
-    return 0;
-  }
+  // Terminal states
+  return state;
 }
+
+/**
+ * Returns reward given the terminal state reached and the current goal.
+ * goal: 'apple' | 'salad'
+ */
+export function getReward(terminalState, goal) {
+  if (terminalState === STATES.S_APPLE && goal === 'apple') return 1;
+  if (terminalState === STATES.S_SALAD && goal === 'salad') return 1;
+  return 0;
+}
+
+/**
+ * One-hot vector of length N_STATES for given state index.
+ */
+export function oneHot(stateIndex) {
+  const v = new Float32Array(N_STATES);
+  v[stateIndex] = 1;
+  return v;
+}
+
+/**
+ * Softmax with numerical stability (subtract max).
+ * Returns probability for each action.
+ * beta: inverse temperature
+ */
+export function softmax(qValues, beta) {
+  const vals = Object.values(qValues);
+  const keys = Object.keys(qValues);
+  const maxVal = Math.max(...vals);
+  const exps = vals.map(v => Math.exp(beta * (v - maxVal)));
+  const sum = exps.reduce((a, b) => a + b, 0);
+  const probs = {};
+  keys.forEach((k, i) => { probs[k] = exps[i] / sum; });
+  return probs;
+}
+
+/**
+ * Sample action from probability distribution.
+ */
+export function sampleAction(probs) {
+  const r = Math.random();
+  let cumulative = 0;
+  for (const [action, prob] of Object.entries(probs)) {
+    cumulative += prob;
+    if (r <= cumulative) return action;
+  }
+  // Fallback to last action
+  return Object.keys(probs)[Object.keys(probs).length - 1];
+}
+
+// Scenario transition configs
+export const TRANSITION_BASELINE = {
+  redPlanetOutcome: 'apple',
+  greenPlanetOutcome: 'salad',
+};
+
+export const TRANSITION_SWAPPED = {
+  redPlanetOutcome: 'salad',
+  greenPlanetOutcome: 'apple',
+};

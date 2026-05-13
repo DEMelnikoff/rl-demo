@@ -1,303 +1,309 @@
-// algorithms.js — MF, MB, SR implementations
+// algorithms.js — MFAgent, MBAgent, SRAgent classes
 
-import { STATES, ACTIONS, STATE_NAMES } from './task.js';
+import { STATES, N_STATES, ACTIONS, oneHot, softmax, sampleAction } from './task.js';
 
-const ALPHA_MF = 0.3;
-const ALPHA_MB_T = 0.5;
-const ALPHA_MB_R = 0.5;
-const ALPHA_SR = 0.3;
-const ALPHA_W = 0.3;
 const GAMMA = 0.9;
-const BETA = 5.0; // softmax temperature
+const BETA = 5;
 
-function softmax(values, beta) {
-  const maxVal = Math.max(...values);
-  const exps = values.map(v => Math.exp(beta * (v - maxVal)));
-  const sum = exps.reduce((a, b) => a + b, 0);
-  return exps.map(e => e / sum);
-}
+// ─── Model-Free Agent ──────────────────────────────────────────────────────────
 
-function sampleFromProbs(probs) {
-  const r = Math.random();
-  let cumProb = 0;
-  for (let i = 0; i < probs.length; i++) {
-    cumProb += probs[i];
-    if (r < cumProb) return i;
-  }
-  return probs.length - 1;
-}
-
-// ─── Model-Free (Q-learning) ─────────────────────────────────────────────────
-
-export class ModelFree {
+export class MFAgent {
   constructor() {
-    // Q[s][a]: 3 states × 2 actions
-    this.Q = [
-      [0.5, 0.5], // S1
-      [0.5, 0.5], // S2a
-      [0.5, 0.5], // S2b
-    ];
+    this.alpha = 0.3;
+    this.reset();
+  }
+
+  reset() {
+    // Q values at choice state (per action)
+    this.Q_choice = { red: 0, green: 0 };
+    // Q values at planet states (scalar expected value)
+    this.Q_planet = { red: 0, green: 0 }; // red planet = index 1, green planet = index 2
     this.lastUpdate = null;
-    this.history = []; // Q(S1,a1) and Q(S1,a2) over trials
   }
 
-  selectAction(state) {
-    const qValues = this.Q[state];
-    const probs = softmax(qValues, BETA);
-    return sampleFromProbs(probs);
+  /**
+   * Run a full two-step trial.
+   * planetKey: 'red' | 'green' (which planet was visited)
+   * reward: number
+   * returns { action, planetKey, reward, updates }
+   */
+  selectAction() {
+    return sampleAction(softmax(this.Q_choice, BETA));
   }
 
-  // Returns update info for visualization
-  update(s1, a1, s2, a2, reward) {
-    // Update Q(s2, a2) — terminal TD update with reward (no next state bootstrap)
-    const oldQ_s2 = this.Q[s2][a2];
-    const delta_s2 = reward - oldQ_s2;
-    this.Q[s2][a2] += ALPHA_MF * delta_s2;
+  update(action, planetKey, reward) {
+    const alpha = this.alpha;
+    const gamma = GAMMA;
 
-    // Update Q(s1, a1) — TD update bootstrapping from s2 using post-update Q(s2)
-    const maxQ_s2 = Math.max(...this.Q[s2]);
-    const oldQ_s1 = this.Q[s1][a1];
-    const tdTarget = GAMMA * maxQ_s2; // reward already captured in Q(s2)
-    const delta_s1 = tdTarget - oldQ_s1;
-    this.Q[s1][a1] += ALPHA_MF * delta_s1;
+    const oldQplanet = this.Q_planet[planetKey];
+    const oldQchoice = this.Q_choice[action];
+
+    // Step 1: update planet Q value
+    const deltaplanet = reward - oldQplanet;
+    this.Q_planet[planetKey] += alpha * deltaplanet;
+
+    // Step 2: update choice Q value with two-step TD
+    const tdTarget = reward + gamma * this.Q_planet[planetKey];
+    const deltachoice = tdTarget - oldQchoice;
+    this.Q_choice[action] += alpha * deltachoice;
 
     this.lastUpdate = {
-      s1, a1, s2, a2, reward,
-      oldQ_s2, delta_s2, newQ_s2: this.Q[s2][a2],
-      oldQ_s1, delta_s1, tdTarget: tdTarget, maxQ_s2, newQ_s1: this.Q[s1][a1],
+      planetKey,
+      action,
+      reward,
+      oldQplanet,
+      newQplanet: this.Q_planet[planetKey],
+      deltaplanet,
+      oldQchoice,
+      newQchoice: this.Q_choice[action],
+      deltachoice,
     };
-    this.history.push([this.Q[0][0], this.Q[0][1]]);
+
     return this.lastUpdate;
   }
 
   getQValues() {
-    return this.Q.map(row => [...row]);
+    return { red: this.Q_choice.red, green: this.Q_choice.green };
+  }
+
+  getPreferredAction() {
+    return this.Q_choice.red >= this.Q_choice.green ? 'red' : 'green';
+  }
+
+  getDisplayData() {
+    return {
+      Q_choice: { ...this.Q_choice },
+      Q_planet: { ...this.Q_planet },
+    };
   }
 }
 
-// ─── Model-Based ─────────────────────────────────────────────────────────────
+// ─── Model-Based Agent ─────────────────────────────────────────────────────────
 
-export class ModelBased {
+export class MBAgent {
   constructor() {
-    // Transition counts/probs: T[s1_action][s2] — only S1 transitions matter
-    // T[a][s2] = probability estimate
-    this.T = [
-      [0.5, 0.5], // a1 → [P(S2a), P(S2b)]
-      [0.5, 0.5], // a2 → [P(S2a), P(S2b)]
-    ];
-    // Reward model: R[s2][a2] = expected reward estimate
-    this.R = [
-      [0.5, 0.5], // S2a: [a1, a2]
-      [0.5, 0.5], // S2b: [a1, a2]
-    ];
-    // Value function V[s]
-    this.V = [0.5, 0.5, 0.5];
+    this.alpha_T = 0.5;
+    this.alpha_R = 0.3;
+    this.reset();
+  }
+
+  reset() {
+    // T[planet][outcome]: probability that planet leads to outcome
+    this.T = {
+      red: { apple: 0.5, salad: 0.5 },
+      green: { apple: 0.5, salad: 0.5 },
+    };
+    // R[outcome]: expected reward for each outcome
+    this.R = { apple: 0, salad: 0 };
     this.lastUpdate = null;
-    this.history = [];
-    this._recomputeActionValues();
   }
 
-  _recomputeActionValues() {
-    // Value iteration — do multiple sweeps from S2 backwards
-    // Update V for S2a, S2b first
-    this.V[STATES.S2A] = Math.max(this.R[0][0], this.R[0][1]);
-    this.V[STATES.S2B] = Math.max(this.R[1][0], this.R[1][1]);
-
-    // Update V for S1 using transition model
-    const V_a1 = this.T[0][0] * (this.R[0][ACTIONS.A1] + GAMMA * this.V[STATES.S2A])
-               + this.T[0][1] * (this.R[1][ACTIONS.A1] + GAMMA * this.V[STATES.S2B]);
-    const V_a2 = this.T[1][0] * (this.R[0][ACTIONS.A2] + GAMMA * this.V[STATES.S2A])
-               + this.T[1][1] * (this.R[1][ACTIONS.A2] + GAMMA * this.V[STATES.S2B]);
-
-    // Q values at S1
-    this.Q_S1 = [V_a1, V_a2];
-    this.V[STATES.S1] = Math.max(V_a1, V_a2);
+  selectAction() {
+    const Q = this._computeQ();
+    return sampleAction(softmax(Q, BETA));
   }
 
-  // Get Q values at S1 for action selection
-  getQ_S1() {
-    return [...this.Q_S1];
+  _computeQ() {
+    const g2 = GAMMA * GAMMA;
+    const Qred = g2 * (this.T.red.apple * this.R.apple + this.T.red.salad * this.R.salad);
+    const Qgreen = g2 * (this.T.green.apple * this.R.apple + this.T.green.salad * this.R.salad);
+    return { red: Qred, green: Qgreen };
   }
 
-  // Q at S2 states — pick best R
-  getQ_S2(s2) {
-    return [...this.R[s2 - 1]];
+  /**
+   * Update from planet observation.
+   * planetKey: 'red' | 'green'
+   * outcomeKey: 'apple' | 'salad'
+   * reward: number
+   */
+  update(planetKey, outcomeKey, reward) {
+    const alpha_T = this.alpha_T;
+    const alpha_R = this.alpha_R;
+    const otherOutcome = outcomeKey === 'apple' ? 'salad' : 'apple';
+
+    const oldT = this.T[planetKey][outcomeKey];
+    const oldR = this.R[outcomeKey];
+
+    // Update transition model
+    this.T[planetKey][outcomeKey] += alpha_T * (1 - this.T[planetKey][outcomeKey]);
+    this.T[planetKey][otherOutcome] = 1 - this.T[planetKey][outcomeKey];
+
+    // Update reward model
+    this.R[outcomeKey] += alpha_R * (reward - this.R[outcomeKey]);
+
+    this.lastUpdate = {
+      planetKey,
+      outcomeKey,
+      reward,
+      oldT,
+      newT: this.T[planetKey][outcomeKey],
+      oldR,
+      newR: this.R[outcomeKey],
+    };
+
+    return this.lastUpdate;
   }
 
-  selectAction(state) {
-    let qValues;
-    if (state === STATES.S1) {
-      qValues = this.Q_S1;
+  getQValues() {
+    return this._computeQ();
+  }
+
+  getPreferredAction() {
+    const Q = this._computeQ();
+    return Q.red >= Q.green ? 'red' : 'green';
+  }
+
+  getDisplayData() {
+    return {
+      T: {
+        red: { ...this.T.red },
+        green: { ...this.T.green },
+      },
+      R: { ...this.R },
+      Q: this._computeQ(),
+    };
+  }
+}
+
+// ─── Successor Representation Agent ───────────────────────────────────────────
+
+export class SRAgent {
+  constructor() {
+    this.alpha_SR = 0.3;
+    this.alpha_w = 0.3;
+    this.reset();
+  }
+
+  reset() {
+    // Per-action M vectors from S_choice (length N_STATES each)
+    // M_red: occupancy when taking red rocket from choice
+    this.M_red = oneHot(STATES.S_CHOICE).slice();    // e[0]
+    this.M_green = oneHot(STATES.S_CHOICE).slice();  // e[0]
+
+    // M vectors from planet states
+    this.M_planet_red = oneHot(STATES.S_RED_PLANET).slice();   // e[1]
+    this.M_planet_green = oneHot(STATES.S_GREEN_PLANET).slice(); // e[2]
+
+    // Reward weights per state
+    this.w = new Float32Array(N_STATES);
+
+    this.lastUpdate = null;
+    this.lastUpdatedRows = [];
+  }
+
+  selectAction() {
+    const Q = this._computeQ();
+    return sampleAction(softmax(Q, BETA));
+  }
+
+  _dot(a, b) {
+    let sum = 0;
+    for (let i = 0; i < N_STATES; i++) sum += a[i] * b[i];
+    return sum;
+  }
+
+  _computeQ() {
+    return {
+      red: this._dot(this.M_red, this.w),
+      green: this._dot(this.M_green, this.w),
+    };
+  }
+
+  /**
+   * Update SR when taking rocket action from S_choice.
+   * action: 'red' | 'green'
+   */
+  updateFromChoice(action) {
+    const alpha = this.alpha_SR;
+    const gamma = GAMMA;
+    const e0 = oneHot(STATES.S_CHOICE);
+
+    if (action === 'red') {
+      // M_red ← M_red + α * (e[0] + γ * M_planet_red − M_red)
+      const oldM = this.M_red.slice();
+      for (let i = 0; i < N_STATES; i++) {
+        this.M_red[i] += alpha * (e0[i] + gamma * this.M_planet_red[i] - this.M_red[i]);
+      }
+      this.lastUpdatedRows = [0];
+      return { row: 'M_red', oldM, newM: this.M_red.slice() };
     } else {
-      qValues = this.R[state - 1];
+      const oldM = this.M_green.slice();
+      for (let i = 0; i < N_STATES; i++) {
+        this.M_green[i] += alpha * (e0[i] + gamma * this.M_planet_green[i] - this.M_green[i]);
+      }
+      this.lastUpdatedRows = [1];
+      return { row: 'M_green', oldM, newM: this.M_green.slice() };
     }
-    const probs = softmax(qValues, BETA);
-    return sampleFromProbs(probs);
   }
 
-  update(s1, a1, s2, a2, reward) {
-    // Update transition model: T[a1][s2_idx]
-    const s2idx = s2 - 1; // S2a=0, S2b=1
-    const oldT = [...this.T[a1]];
-    const predError_T = [];
-    for (let i = 0; i < 2; i++) {
-      const indicator = i === s2idx ? 1 : 0;
-      predError_T.push(indicator - this.T[a1][i]);
-      this.T[a1][i] += ALPHA_MB_T * (indicator - this.T[a1][i]);
-    }
+  /**
+   * Update SR when at a planet state transitioning to terminal.
+   * planetKey: 'red' | 'green'
+   * terminalState: STATES.S_APPLE or STATES.S_SALAD
+   */
+  updateFromPlanet(planetKey, terminalState) {
+    const alpha = this.alpha_SR;
+    const gamma = GAMMA;
 
-    // Update reward model: R[s2idx][a2]
-    const oldR = this.R[s2idx][a2];
-    const rewardPE = reward - oldR;
-    this.R[s2idx][a2] += ALPHA_MB_R * rewardPE;
-
-    // Planning: value iteration
-    this._recomputeActionValues();
-
-    this.lastUpdate = {
-      s1, a1, s2, a2, reward, s2idx,
-      oldT, newT: [...this.T[a1]], predError_T,
-      oldR, newR: this.R[s2idx][a2], rewardPE,
-      newQ_S1: [...this.Q_S1],
-      newV_S2A: this.V[STATES.S2A],
-      newV_S2B: this.V[STATES.S2B],
-    };
-
-    this.history.push([this.Q_S1[0], this.Q_S1[1]]);
-    return this.lastUpdate;
-  }
-
-  getQValues() {
-    // Return Q-like values for all states/actions for display
-    return [
-      [...this.Q_S1],
-      [...this.R[0]], // S2a
-      [...this.R[1]], // S2b
-    ];
-  }
-}
-
-// ─── Successor Representation ─────────────────────────────────────────────────
-
-export class SuccessorRepresentation {
-  constructor() {
-    // M[s][s'] — 3 states
-    // Separate M matrices per action for S1 action selection
-    // M_a[a][s][s'] — SR conditioned on taking action a at S1
-    this.M = [
-      [1.0, 0.0, 0.0], // S1 row
-      [0.0, 1.0, 0.0], // S2a row
-      [0.0, 0.0, 1.0], // S2b row
-    ];
-    // Per-action SR at S1: M_a1[s'] and M_a2[s']
-    // These track E[discounted future occupancy | starting in s, took action a first]
-    this.M_a = [
-      [[0.0, 0.5, 0.5], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]], // action a1
-      [[0.0, 0.5, 0.5], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]], // action a2
-    ];
-    // Reward weights w[s'] — expected reward at each state
-    this.w = [0.0, 0.5, 0.5]; // S1=0 (no reward), S2a=0.5, S2b=0.5
-    this.lastUpdate = null;
-    this.history = [];
-    this._computeValues();
-  }
-
-  _computeValues() {
-    // V(s) = M(s,:) · w
-    this.V = this.M.map(row => row.reduce((sum, m, i) => sum + m * this.w[i], 0));
-    // Q at S1: Q_SR(S1, a) = M_a[a][S1,:] · w
-    this.Q_S1 = [
-      this.M_a[0][STATES.S1].reduce((sum, m, i) => sum + m * this.w[i], 0),
-      this.M_a[1][STATES.S1].reduce((sum, m, i) => sum + m * this.w[i], 0),
-    ];
-  }
-
-  selectAction(state) {
-    let qValues;
-    if (state === STATES.S1) {
-      qValues = this.Q_S1;
+    if (planetKey === 'red') {
+      const ePlanet = oneHot(STATES.S_RED_PLANET);   // e[1]
+      const eTerminal = oneHot(terminalState);
+      const oldM = this.M_planet_red.slice();
+      for (let i = 0; i < N_STATES; i++) {
+        this.M_planet_red[i] += alpha * (ePlanet[i] + gamma * eTerminal[i] - this.M_planet_red[i]);
+      }
+      this.lastUpdatedRows = [2];
+      return { row: 'M_planet_red', oldM, newM: this.M_planet_red.slice() };
     } else {
-      // At S2 states: SR uses per-action SR rows to estimate value
-      // M_a[action][state] · w gives Q(state, action)
-      qValues = [
-        this.M_a[ACTIONS.A1][state].reduce((sum, m, i) => sum + m * this.w[i], 0),
-        this.M_a[ACTIONS.A2][state].reduce((sum, m, i) => sum + m * this.w[i], 0),
-      ];
+      const ePlanet = oneHot(STATES.S_GREEN_PLANET);  // e[2]
+      const eTerminal = oneHot(terminalState);
+      const oldM = this.M_planet_green.slice();
+      for (let i = 0; i < N_STATES; i++) {
+        this.M_planet_green[i] += alpha * (ePlanet[i] + gamma * eTerminal[i] - this.M_planet_green[i]);
+      }
+      this.lastUpdatedRows = [3];
+      return { row: 'M_planet_green', oldM, newM: this.M_planet_green.slice() };
     }
-    const probs = softmax(qValues, BETA);
-    return sampleFromProbs(probs);
   }
 
-  update(s1, a1, s2, a2, reward) {
-    // Update w: reward weight for s2 state
-    const oldW = this.w[s2];
-    const wPE = reward - this.w[s2];
-    this.w[s2] += ALPHA_W * wPE;
-
-    // Update M (state-general SR):
-    // M(s1,:) += alpha * (I(s1) + gamma * M(s2,:) - M(s1,:))
-    const oldM_s1 = [...this.M[s1]];
-    const oldM_s2 = [...this.M[s2]];
-    for (let sp = 0; sp < 3; sp++) {
-      const indicator_s1 = sp === s1 ? 1.0 : 0.0;
-      const target = indicator_s1 + GAMMA * this.M[s2][sp];
-      this.M[s1][sp] += ALPHA_SR * (target - this.M[s1][sp]);
-    }
-
-    // Update M(s2,:) — from s2, no further transitions in this task (terminal reward step)
-    for (let sp = 0; sp < 3; sp++) {
-      const indicator_s2 = sp === s2 ? 1.0 : 0.0;
-      // Next state after s2 is terminal — treat as absorbing with no further states
-      const target = indicator_s2; // gamma * 0 for next state
-      this.M[s2][sp] += ALPHA_SR * (target - this.M[s2][sp]);
-    }
-
-    // Update per-action SR at S1: M_a[a1][s1,:]
-    // M_a[a][s1,:] ← M_a[a][s1,:] + α*(I(s1) + γ*M[s2,:] - M_a[a][s1,:])
-    const oldM_a_s1 = [...this.M_a[a1][s1]];
-    for (let sp = 0; sp < 3; sp++) {
-      const indicator_s1 = sp === s1 ? 1.0 : 0.0;
-      const target = indicator_s1 + GAMMA * this.M[s2][sp];
-      this.M_a[a1][s1][sp] += ALPHA_SR * (target - this.M_a[a1][s1][sp]);
-    }
-
-    // Also update M_a for the s2 state (s2, a2) — s2 is absorbing after reward
-    for (let sp = 0; sp < 3; sp++) {
-      const indicator_s2 = sp === s2 ? 1.0 : 0.0;
-      // terminal: next state is absorbing, so target = I(s2)
-      this.M_a[a2][s2][sp] += ALPHA_SR * (indicator_s2 - this.M_a[a2][s2][sp]);
-    }
-
-    // Recompute values
-    const oldQ_S1 = [...this.Q_S1];
-    this._computeValues();
+  /**
+   * Update reward weights.
+   * terminalState: STATES.S_APPLE or STATES.S_SALAD
+   * reward: number
+   */
+  updateW(terminalState, reward) {
+    const alpha = this.alpha_w;
+    const oldW = this.w.slice();
+    this.w[terminalState] += alpha * (reward - this.w[terminalState]);
 
     this.lastUpdate = {
-      s1, a1, s2, a2, reward,
-      oldM_s1, newM_s1: [...this.M[s1]],
-      oldM_a_s1, newM_a_s1: [...this.M_a[a1][s1]],
-      oldW, newW: this.w[s2], wPE,
-      oldQ_S1, newQ_S1: [...this.Q_S1],
+      terminalState,
+      reward,
+      oldW,
+      newW: this.w.slice(),
     };
 
-    this.history.push([this.Q_S1[0], this.Q_S1[1]]);
     return this.lastUpdate;
   }
 
   getQValues() {
-    // Return Q-like values for display
-    return [
-      [...this.Q_S1],
-      [this.V[STATES.S2A], this.V[STATES.S2A]], // placeholder for S2a
-      [this.V[STATES.S2B], this.V[STATES.S2B]], // placeholder for S2b
-    ];
+    return this._computeQ();
   }
 
-  getM() {
-    return this.M.map(row => [...row]);
+  getPreferredAction() {
+    const Q = this._computeQ();
+    return Q.red >= Q.green ? 'red' : 'green';
   }
 
-  getW() {
-    return [...this.w];
+  getDisplayData() {
+    return {
+      M_red: Array.from(this.M_red),
+      M_green: Array.from(this.M_green),
+      M_planet_red: Array.from(this.M_planet_red),
+      M_planet_green: Array.from(this.M_planet_green),
+      w: Array.from(this.w),
+      Q: this._computeQ(),
+      lastUpdatedRows: [...this.lastUpdatedRows],
+    };
   }
 }

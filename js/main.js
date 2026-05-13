@@ -1,189 +1,273 @@
-// main.js — entry point, wires everything together
+// main.js — wires everything together, event handlers, animation loop
 
 import { Simulation, SCENARIOS } from './simulation.js';
-import { ComparisonChart, QTableViz, MBTableViz, SRViz, StepLogPanel } from './visualizations.js';
-import { STATES } from './task.js';
+import { TaskDiagram, AlgorithmPanel, StepLog, QValueChart, PhaseIndicator, COLORS } from './visualizations.js';
 
-let currentScenario = 'baseline';
-let sim = null;
-let compChart = null;
-let qTableViz = null;
-let mbViz = null;
-let srViz = null;
-let stepLogMF = null, stepLogMB = null, stepLogSR = null;
-let mode = 'step'; // 'step' or 'continuous'
-let lastEntry = null;
-let speedMs = 80; // ms per trial in continuous mode
+// ─── State ────────────────────────────────────────────────────────────────────
 
-function initVizs(scenario) {
-  const rv = SCENARIOS[scenario].revaluationTrial;
-  const total = SCENARIOS[scenario].totalTrials;
+const sim = new Simulation();
 
-  // Destroy old chart if any
-  compChart = new ComparisonChart('#comparison-chart', rv, total);
-  qTableViz = new QTableViz('#mf-qtable');
-  mbViz = new MBTableViz('#mb-table');
-  srViz = new SRViz('#sr-viz');
-  stepLogMF = new StepLogPanel('#step-log-mf');
-  stepLogMB = new StepLogPanel('#step-log-mb');
-  stepLogSR = new StepLogPanel('#step-log-sr');
-}
+let currentAlgo = 'mf';
+let isPlaying = false;
+let playSpeed = 400; // ms per trial
+let animDelay = 250; // ms per state in animation
+let playTimer = null;
+let isAnimating = false;
 
-function resetAll() {
-  if (sim) sim.stopContinuous();
-  sim = new Simulation(currentScenario);
-  lastEntry = null;
-
-  // Reset UI
-  document.getElementById('trial-counter').textContent = 'Trial: 0 / ' + SCENARIOS[currentScenario].totalTrials;
-  document.getElementById('btn-step').disabled = false;
-  document.getElementById('btn-play').disabled = false;
-  document.getElementById('btn-play').textContent = 'Play';
-  document.getElementById('btn-reset').classList.remove('active');
-
-  // Initial viz render
-  updateVizs(null);
-}
-
-function updateVizs(entry) {
-  // Update comparison chart
-  if (sim) compChart.update(sim.getHistory());
-
-  // Update internal representations
-  const mf = sim.mf;
-  const mb = sim.mb;
-  const sr = sim.sr;
-
-  let hlMF_s2 = null, hlMF_s1 = null;
-  let hlMB_T = null, hlMB_R = null;
-  let hlSR_row = null;
-
-  if (entry) {
-    hlMF_s2 = `${entry.mf.s2},${entry.mf.a2}`;
-    hlMF_s1 = `${entry.mf.s1},${entry.mf.a1}`;
-    hlMB_T = entry.mb.a1;
-    hlMB_R = `${entry.mb.s2 - 1},${entry.mb.a2}`;
-    hlSR_row = entry.sr.s1;
-  }
-
-  qTableViz.update(mf.getQValues(), hlMF_s1);
-  mbViz.update(mb.T, mb.R, hlMB_T, hlMB_R);
-  srViz.update(sr.getM(), sr.getW(), hlSR_row);
-
-  stepLogMF.update(entry, 'mf');
-  stepLogMB.update(entry, 'mb');
-  stepLogSR.update(entry, 'sr');
-
-  if (sim) {
-    document.getElementById('trial-counter').textContent =
-      `Trial: ${sim.trial} / ${SCENARIOS[currentScenario].totalTrials}`;
-  }
-}
-
-function doStep() {
-  if (!sim || sim.isDone()) return;
-  const entry = sim.runTrial();
-  lastEntry = entry;
-  updateVizs(entry);
-  if (sim.isDone()) {
-    document.getElementById('btn-step').disabled = true;
-    document.getElementById('btn-play').disabled = true;
-  }
-}
-
-function doPlayPause() {
-  if (!sim) return;
-  const btn = document.getElementById('btn-play');
-  if (sim.running) {
-    sim.stopContinuous();
-    btn.textContent = 'Play';
-    document.getElementById('btn-step').disabled = false;
-  } else {
-    if (sim.isDone()) return;
-    btn.textContent = 'Pause';
-    document.getElementById('btn-step').disabled = true;
-    sim.startContinuous(
-      speedMs,
-      (entry, history) => {
-        lastEntry = entry;
-        compChart.update(history);
-        // Update representations less frequently for speed
-        if (sim.trial % 5 === 0 || speedMs > 100) {
-          updateVizs(entry);
-        } else {
-          document.getElementById('trial-counter').textContent =
-            `Trial: ${sim.trial} / ${SCENARIOS[currentScenario].totalTrials}`;
-        }
-      },
-      () => {
-        btn.textContent = 'Play';
-        document.getElementById('btn-step').disabled = true;
-        document.getElementById('btn-play').disabled = true;
-        updateVizs(lastEntry);
-      }
-    );
-  }
-}
-
-function handleScenarioChange(scenarioId) {
-  currentScenario = scenarioId;
-
-  // Update active tab
-  document.querySelectorAll('.scenario-tab').forEach(t => t.classList.remove('active'));
-  document.querySelector(`[data-scenario="${scenarioId}"]`).classList.add('active');
-
-  // Update scenario description
-  const s = SCENARIOS[scenarioId];
-  document.getElementById('scenario-title').textContent = s.name;
-  document.getElementById('scenario-desc').textContent = s.description;
-
-  // Reinit
-  initVizs(scenarioId);
-  resetAll();
-}
-
-function handleSpeedChange(val) {
-  // val: 1 (slow) to 5 (fast)
-  const speeds = [500, 200, 80, 30, 10];
-  speedMs = speeds[val - 1];
-}
+const taskDiagram = new TaskDiagram('task-diagram');
+const algoPanel = new AlgorithmPanel('algo-panel');
+const stepLog = new StepLog('step-log');
+const qChart = new QValueChart('q-chart');
+const phaseIndicator = new PhaseIndicator('phase-indicator');
 
 // ─── Boot ─────────────────────────────────────────────────────────────────────
 
-document.addEventListener('DOMContentLoaded', () => {
+function init() {
+  renderAll();
+  attachEventListeners();
+}
+
+function renderAll() {
+  const state = sim.getState();
+
+  // Sync diagram to current phase
+  const phase = state.phases[state.currentPhaseIndex] || state.phases[state.phases.length - 1];
+  taskDiagram.setGoal(phase.goal);
+  taskDiagram.setTransitions(phase.transitions);
+  taskDiagram.setPhase2(state.currentPhaseIndex >= 1);
+  taskDiagram.setAlgoColor(currentAlgo);
+
+  algoPanel.render(currentAlgo, state);
+  stepLog.render(state.stepLog, currentAlgo);
+  qChart.render(state);
+  phaseIndicator.render(state);
+
+  updateControlsUI(state);
+}
+
+function updateControlsUI(state) {
+  const playBtn = document.getElementById('play-btn');
+  const nextBtn = document.getElementById('next-btn');
+  const resetBtn = document.getElementById('reset-btn');
+
+  if (playBtn) {
+    playBtn.textContent = isPlaying ? '⏸ Pause' : '▶ Play';
+    playBtn.disabled = state.done;
+  }
+  if (nextBtn) nextBtn.disabled = state.done || isAnimating;
+  if (resetBtn) resetBtn.disabled = false;
+
+  // Update progress bar
+  const progressEl = document.getElementById('trial-progress');
+  if (progressEl) {
+    const pct = state.totalTrials > 0 ? (state.globalTrial / state.totalTrials) * 100 : 0;
+    progressEl.style.width = `${Math.min(100, pct)}%`;
+  }
+
+  const trialCountEl = document.getElementById('trial-count');
+  if (trialCountEl) {
+    if (state.done) {
+      trialCountEl.textContent = 'Done — Choice Phase';
+    } else {
+      trialCountEl.textContent = `Phase ${state.currentPhaseIndex + 1} · Trial ${state.trialInPhase + 1} / ${state.phases[state.currentPhaseIndex]?.trials}`;
+    }
+  }
+}
+
+// ─── Step Logic ───────────────────────────────────────────────────────────────
+
+function doStep() {
+  if (sim.done || isAnimating) return;
+
+  isAnimating = true;
+  const stepDesc = sim.step();
+  if (!stepDesc) {
+    isAnimating = false;
+    return;
+  }
+
+  const state = sim.getState();
+
+  // Update phase diagram config
+  const phaseIdx = Math.min(state.currentPhaseIndex, state.phases.length - 1);
+  const phase = state.phases[phaseIdx] || state.phases[state.phases.length - 1];
+  // Use the STEP's phase config (before incrementing)
+  const stepPhase = sim.scenario.phases[stepDesc.phase] || sim.scenario.phases[sim.scenario.phases.length - 1];
+
+  taskDiagram.setGoal(stepPhase.goal);
+  taskDiagram.setTransitions(stepPhase.transitions);
+  taskDiagram.setPhase2(stepDesc.phase >= 1);
+
+  const algoColor = COLORS[currentAlgo];
+
+  taskDiagram.animateTrial(stepDesc, algoColor, () => {
+    algoPanel.update(currentAlgo, state, stepDesc);
+    stepLog.render(state.stepLog, currentAlgo);
+    qChart.render(state);
+    phaseIndicator.render(state);
+    updateControlsUI(state);
+    isAnimating = false;
+
+    if (state.done) {
+      stopPlay();
+      showDoneMessage();
+    }
+  }, animDelay);
+}
+
+function showDoneMessage() {
+  const state = sim.getState();
+  const banner = document.getElementById('done-banner');
+  if (!banner) return;
+
+  const mfChoice = state.mfChoice === 'red' ? '🔴' : '🟢';
+  const mbChoice = state.mbChoice === 'red' ? '🔴' : '🟢';
+  const srChoice = state.srChoice === 'red' ? '🔴' : '🟢';
+
+  banner.innerHTML = `
+    <div class="done-banner-inner">
+      <span class="done-title">Choice Phase</span>
+      <span class="done-item" style="color:${COLORS.mf}">MF: ${mfChoice} ${state.mfChoice}</span>
+      <span class="done-item" style="color:${COLORS.mb}">MB: ${mbChoice} ${state.mbChoice}</span>
+      <span class="done-item" style="color:${COLORS.sr}">SR: ${srChoice} ${state.srChoice}</span>
+    </div>
+  `;
+  banner.style.display = 'flex';
+}
+
+function hideDoneMessage() {
+  const banner = document.getElementById('done-banner');
+  if (banner) banner.style.display = 'none';
+}
+
+// ─── Play / Pause ─────────────────────────────────────────────────────────────
+
+function startPlay() {
+  if (sim.done) return;
+  isPlaying = true;
+  document.getElementById('play-btn').textContent = '⏸ Pause';
+
+  function tick() {
+    if (!isPlaying || sim.done) {
+      stopPlay();
+      return;
+    }
+    if (!isAnimating) {
+      doStep();
+    }
+    playTimer = setTimeout(tick, playSpeed);
+  }
+
+  playTimer = setTimeout(tick, 100);
+}
+
+function stopPlay() {
+  isPlaying = false;
+  clearTimeout(playTimer);
+  playTimer = null;
+  const playBtn = document.getElementById('play-btn');
+  if (playBtn) playBtn.textContent = '▶ Play';
+}
+
+// ─── Event Listeners ──────────────────────────────────────────────────────────
+
+function attachEventListeners() {
   // Scenario tabs
   document.querySelectorAll('.scenario-tab').forEach(tab => {
     tab.addEventListener('click', () => {
-      handleScenarioChange(tab.dataset.scenario);
+      const scenarioId = tab.dataset.scenario;
+      if (scenarioId === sim.scenarioId) return;
+
+      stopPlay();
+      hideDoneMessage();
+
+      document.querySelectorAll('.scenario-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+
+      sim.setScenario(scenarioId);
+      renderAll();
     });
   });
 
-  // Buttons
-  document.getElementById('btn-step').addEventListener('click', doStep);
-  document.getElementById('btn-play').addEventListener('click', doPlayPause);
-  document.getElementById('btn-reset').addEventListener('click', resetAll);
+  // Algorithm toggle
+  document.querySelectorAll('.algo-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentAlgo = btn.dataset.algo;
+      document.querySelectorAll('.algo-toggle-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Re-style active button
+      document.querySelectorAll('.algo-toggle-btn').forEach(b => {
+        const color = COLORS[b.dataset.algo];
+        b.style.borderColor = b.classList.contains('active') ? color : COLORS.border;
+        b.style.color = b.classList.contains('active') ? color : COLORS.textMuted;
+        b.style.background = b.classList.contains('active') ? `${color}22` : 'transparent';
+      });
+
+      taskDiagram.setAlgoColor(currentAlgo);
+      algoPanel.render(currentAlgo, sim.getState());
+      stepLog.render(sim.getState().stepLog, currentAlgo);
+    });
+  });
+
+  // Play/Pause button
+  document.getElementById('play-btn')?.addEventListener('click', () => {
+    if (isPlaying) {
+      stopPlay();
+    } else {
+      startPlay();
+    }
+  });
+
+  // Next Step button
+  document.getElementById('next-btn')?.addEventListener('click', () => {
+    stopPlay();
+    doStep();
+  });
+
+  // Reset button
+  document.getElementById('reset-btn')?.addEventListener('click', () => {
+    stopPlay();
+    hideDoneMessage();
+    sim.reset();
+    isAnimating = false;
+    renderAll();
+  });
 
   // Speed slider
-  const slider = document.getElementById('speed-slider');
-  if (slider) {
-    slider.addEventListener('input', () => handleSpeedChange(parseInt(slider.value)));
-  }
+  document.getElementById('speed-slider')?.addEventListener('input', (e) => {
+    const val = parseInt(e.target.value, 10);
+    // val: 1=slow, 2=med, 3=fast, 4=very fast
+    const speeds =      { 1: 800, 2: 400, 3: 150, 4: 50 };
+    const animDelays =  { 1: 300, 2: 200, 3: 80,  4: 0  };
+    playSpeed = speeds[val] || 400;
+    animDelay = animDelays[val] ?? 200;
+    document.getElementById('speed-label').textContent = ['', 'Slow', 'Medium', 'Fast', 'Very Fast'][val] || 'Medium';
+  });
 
-  // Init with baseline
-  initVizs('baseline');
-  resetAll();
-
-  // Resize handler
+  // Re-render chart on window resize
   let resizeTimer;
   window.addEventListener('resize', () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
-      compChart = new ComparisonChart(
-        '#comparison-chart',
-        SCENARIOS[currentScenario].revaluationTrial,
-        SCENARIOS[currentScenario].totalTrials
-      );
-      compChart.update(sim ? sim.getHistory() : { mf: [], mb: [], sr: [], trials: [] });
-    }, 250);
+      qChart.render(sim.getState());
+    }, 200);
   });
+
+  // Initialize algo toggle button styles
+  document.querySelectorAll('.algo-toggle-btn').forEach(b => {
+    const color = COLORS[b.dataset.algo];
+    if (b.classList.contains('active')) {
+      b.style.borderColor = color;
+      b.style.color = color;
+      b.style.background = `${color}22`;
+    }
+  });
+}
+
+// ─── Start ────────────────────────────────────────────────────────────────────
+
+// Wait for D3 to load
+window.addEventListener('load', () => {
+  init();
 });

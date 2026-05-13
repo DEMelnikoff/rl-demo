@@ -4,7 +4,7 @@
     {
       "name": "rl-demo",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["serve", "-p", "4321", "."],
+      "runtimeArgs": ["serve", "-p", "4321", "/Users/dmelnik/Documents/github/rl-demo"],
       "port": 4321
     }
   ]
