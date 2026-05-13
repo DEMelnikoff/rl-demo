@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Two-Step Task — Computational RL Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+</head>
+<body>
+
+<header class="site-header">
+  <h1>Two-Step Task</h1>
+  <span class="subtitle">Interactive computational RL demo — Model-Free · Model-Based · Successor Representation</span>
+</header>
+
+<div class="main-layout">
+
+  <!-- Task diagram / legend -->
+  <div class="task-diagram-section">
+    <h3>Task Structure &amp; Algorithms</h3>
+    <div class="diagram-flex">
+      <div class="task-svg-wrap">
+        <svg width="380" height="200" viewBox="0 0 380 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- S1 -->
+          <circle cx="60" cy="100" r="28" fill="#1e2947" stroke="#3a4a70" stroke-width="2"/>
+          <text x="60" y="96" text-anchor="middle" fill="#e2e8f0" font-size="13" font-weight="700">S1</text>
+          <text x="60" y="111" text-anchor="middle" fill="#7a8cb0" font-size="9">start</text>
+
+          <!-- a1 → S2a (common 0.7) -->
+          <path d="M85 83 C140 40 200 40 222 62" stroke="#60a5fa" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#arr-b)"/>
+          <text x="155" y="38" text-anchor="middle" fill="#60a5fa" font-size="10">a1 → 0.7</text>
+
+          <!-- a2 → S2b (common 0.7) -->
+          <path d="M85 117 C140 158 200 158 222 138" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="5,3" fill="none" marker-end="url(#arr-a)"/>
+          <text x="155" y="172" text-anchor="middle" fill="#f59e0b" font-size="10">a2 → 0.7</text>
+
+          <!-- S2a -->
+          <circle cx="250" cy="62" r="26" fill="#1e2947" stroke="#3a4a70" stroke-width="2"/>
+          <text x="250" y="58" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">S2a</text>
+          <text x="250" y="72" text-anchor="middle" fill="#7a8cb0" font-size="9">🍎 p=0.8 / 🍊 p=0.2</text>
+
+          <!-- S2b -->
+          <circle cx="250" cy="138" r="26" fill="#1e2947" stroke="#3a4a70" stroke-width="2"/>
+          <text x="250" y="134" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">S2b</text>
+          <text x="250" y="148" text-anchor="middle" fill="#7a8cb0" font-size="9">🍊 p=0.8 / 🍎 p=0.2</text>
+
+          <!-- Reward nodes -->
+          <rect x="316" y="40" width="52" height="22" rx="5" fill="#1a3520" stroke="#235c44" stroke-width="1.5"/>
+          <text x="342" y="55" text-anchor="middle" fill="#34d399" font-size="11">Reward</text>
+          <line x1="276" y1="62" x2="316" y2="51" stroke="#2d3a5c" stroke-width="1.2" stroke-dasharray="3,3"/>
+          <rect x="316" y="116" width="52" height="22" rx="5" fill="#1a3520" stroke="#235c44" stroke-width="1.5"/>
+          <text x="342" y="131" text-anchor="middle" fill="#34d399" font-size="11">Reward</text>
+          <line x1="276" y1="138" x2="316" y2="127" stroke="#2d3a5c" stroke-width="1.2" stroke-dasharray="3,3"/>
+
+          <!-- rare transitions dotted -->
+          <path d="M85 90 C130 80 190 120 222 128" stroke="#3a4a70" stroke-width="1" stroke-dasharray="3,4" fill="none"/>
+          <text x="148" y="105" text-anchor="middle" fill="#3a4a70" font-size="9">0.3 (rare)</text>
+
+          <!-- Arrow markers -->
+          <defs>
+            <marker id="arr-a" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+              <path d="M0,0 L6,3 L0,6" fill="#f59e0b"/>
+            </marker>
+            <marker id="arr-b" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+              <path d="M0,0 L6,3 L0,6" fill="#60a5fa"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+
+      <div class="task-desc-rows">
+        <div class="alg-desc-row">
+          <div class="alg-color-bar" style="background:#f59e0b"></div>
+          <div class="alg-desc-text">
+            <strong class="accent-mf">Model-Free (Q-learning)</strong>
+            <p>Updates Q(s,a) via TD errors. Values propagate slowly through experience. Insensitive to both outcome and transition revaluation until re-experienced.</p>
+          </div>
+        </div>
+        <div class="alg-desc-row">
+          <div class="alg-color-bar" style="background:#60a5fa"></div>
+          <div class="alg-desc-text">
+            <strong class="accent-mb">Model-Based RL</strong>
+            <p>Maintains explicit T(s,a,s') and R(s,a) models; plans via value iteration after each trial. Immediately sensitive to both revaluations.</p>
+          </div>
+        </div>
+        <div class="alg-desc-row">
+          <div class="alg-color-bar" style="background:#34d399"></div>
+          <div class="alg-desc-text">
+            <strong class="accent-sr">Successor Representation</strong>
+            <p>M(s,s') encodes expected discounted future occupancy; V = M·w. Quick to adapt to outcome revaluation (update w), slow for transition revaluation (M must re-learn).</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scenario selector -->
+  <div class="scenario-bar">
+    <div class="scenario-tabs">
+      <button class="scenario-tab active" data-scenario="baseline">Scenario 1: Baseline</button>
+      <button class="scenario-tab" data-scenario="outcomeRevaluation">Scenario 2: Outcome Revaluation</button>
+      <button class="scenario-tab" data-scenario="transitionRevaluation">Scenario 3: Transition Revaluation</button>
+    </div>
+  </div>
+
+  <!-- Scenario description -->
+  <div class="scenario-info">
+    <h2 id="scenario-title">Scenario 1: Baseline</h2>
+    <p id="scenario-desc">Goal = apple throughout. All three algorithms learn the task from scratch.</p>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls-bar">
+    <button class="btn btn-primary" id="btn-step">&#9654;&nbsp; Step</button>
+    <button class="btn btn-success" id="btn-play">&#9654;&nbsp; Play</button>
+    <button class="btn btn-secondary" id="btn-reset">&#8635;&nbsp; Reset</button>
+    <span class="trial-counter" id="trial-counter">Trial: 0 / 200</span>
+    <div class="speed-control">
+      <label>Speed:</label>
+      <input type="range" id="speed-slider" min="1" max="5" value="3" />
+      <label>Fast</label>
+    </div>
+  </div>
+
+  <!-- Main comparison chart -->
+  <div class="chart-panel">
+    <h3>Q(S1, a1) — All Algorithms (a1 = action leading commonly to S2a)</h3>
+    <div id="comparison-chart"></div>
+  </div>
+
+  <!-- Algorithm panels -->
+  <div class="alg-panels">
+
+    <!-- Model-Free -->
+    <div class="alg-panel border-mf" style="border-top: 3px solid var(--accent-mf)">
+      <div class="alg-header">
+        <div class="alg-dot" style="background:#f59e0b"></div>
+        <div>
+          <div class="alg-panel-title accent-mf">Model-Free (Q-learning)</div>
+          <div class="alg-panel-tagline">α=0.3, γ=0.9, β=5 — TD update on every transition</div>
+        </div>
+      </div>
+      <div class="alg-panel-body">
+        <div>
+          <div class="repr-label">Q-Table</div>
+          <div id="mf-qtable"></div>
+        </div>
+        <div class="step-log-section">
+          <div class="repr-label">Last Update</div>
+          <div id="step-log-mf"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Model-Based -->
+    <div class="alg-panel border-mb" style="border-top: 3px solid var(--accent-mb)">
+      <div class="alg-header">
+        <div class="alg-dot" style="background:#60a5fa"></div>
+        <div>
+          <div class="alg-panel-title accent-mb">Model-Based RL</div>
+          <div class="alg-panel-tagline">α_T=0.5, α_R=0.5, γ=0.9 — value iteration after each trial</div>
+        </div>
+      </div>
+      <div class="alg-panel-body">
+        <div>
+          <div class="repr-label">Transition &amp; Reward Models</div>
+          <div id="mb-table"></div>
+        </div>
+        <div class="step-log-section">
+          <div class="repr-label">Last Update</div>
+          <div id="step-log-mb"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SR -->
+    <div class="alg-panel border-sr" style="border-top: 3px solid var(--accent-sr)">
+      <div class="alg-header">
+        <div class="alg-dot" style="background:#34d399"></div>
+        <div>
+          <div class="alg-panel-title accent-sr">Successor Representation</div>
+          <div class="alg-panel-tagline">α_M=0.3, α_w=0.3, γ=0.9 — M(s,s')·w</div>
+        </div>
+      </div>
+      <div class="alg-panel-body">
+        <div>
+          <div class="repr-label">M Matrix &amp; w Weights</div>
+          <div id="sr-viz"></div>
+        </div>
+        <div class="step-log-section">
+          <div class="repr-label">Last Update</div>
+          <div id="step-log-sr"></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /.alg-panels -->
+
+</div><!-- /.main-layout -->
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
