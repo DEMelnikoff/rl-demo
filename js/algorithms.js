@@ -2,7 +2,7 @@
 
 import { STATES, N_STATES, ACTIONS, oneHot, softmax, sampleAction } from './task.js';
 
-const GAMMA = 0.9;
+const GAMMA = 1.0;
 const BETA = 5;
 
 // ─── Model-Free Agent ──────────────────────────────────────────────────────────
@@ -38,12 +38,12 @@ export class MFAgent {
     const oldQplanet = this.Q_planet[planetKey];
     const oldQchoice = this.Q_choice[action];
 
-    // Step 1: update planet Q value
+    // Step 1: update planet Q value (reward is received at terminal — planet bootstraps to it)
     const deltaplanet = reward - oldQplanet;
     this.Q_planet[planetKey] += alpha * deltaplanet;
 
-    // Step 2: update choice Q value with two-step TD
-    const tdTarget = reward + gamma * this.Q_planet[planetKey];
+    // Step 2: update choice Q value — bootstrap from planet (no immediate reward at choice step)
+    const tdTarget = gamma * this.Q_planet[planetKey];
     const deltachoice = tdTarget - oldQchoice;
     this.Q_choice[action] += alpha * deltachoice;
 
@@ -83,19 +83,27 @@ export class MFAgent {
 export class MBAgent {
   constructor() {
     this.alpha_T = 0.5;
-    this.alpha_R = 0.3;
     this.reset();
   }
 
   reset() {
-    // T[planet][outcome]: probability that planet leads to outcome
-    this.T = {
-      red: { apple: 0.5, salad: 0.5 },
+    // T_rocket[action][planet]: probability that rocket action leads to planet
+    this.T_rocket = {
+      red:   { red_planet: 0.5, green_planet: 0.5 },
+      green: { red_planet: 0.5, green_planet: 0.5 },
+    };
+    // T_planet[planet][outcome]: probability that planet leads to outcome
+    this.T_planet = {
+      red:   { apple: 0.5, salad: 0.5 },
       green: { apple: 0.5, salad: 0.5 },
     };
-    // R[outcome]: expected reward for each outcome
-    this.R = { apple: 0, salad: 0 };
+    // R is determined by goal, not learned
+    this.R = { apple: 1, salad: 0 };
     this.lastUpdate = null;
+  }
+
+  setGoal(goal) {
+    this.R = { apple: goal === 'apple' ? 1 : 0, salad: goal === 'salad' ? 1 : 0 };
   }
 
   selectAction() {
@@ -104,44 +112,51 @@ export class MBAgent {
   }
 
   _computeQ() {
+    // Full planning: Q(rocket) = Σ_planet T_rocket[rocket][planet] * Σ_outcome T_planet[planet][outcome] * R[outcome]
+    const planetValue = (planet) =>
+      this.T_planet[planet].apple * this.R.apple +
+      this.T_planet[planet].salad * this.R.salad;
+
     const g2 = GAMMA * GAMMA;
-    const Qred = g2 * (this.T.red.apple * this.R.apple + this.T.red.salad * this.R.salad);
-    const Qgreen = g2 * (this.T.green.apple * this.R.apple + this.T.green.salad * this.R.salad);
+    const Qred = g2 * (
+      this.T_rocket.red.red_planet * planetValue('red') +
+      this.T_rocket.red.green_planet * planetValue('green')
+    );
+    const Qgreen = g2 * (
+      this.T_rocket.green.red_planet * planetValue('red') +
+      this.T_rocket.green.green_planet * planetValue('green')
+    );
     return { red: Qred, green: Qgreen };
   }
 
   /**
-   * Update from planet observation.
-   * planetKey: 'red' | 'green'
-   * outcomeKey: 'apple' | 'salad'
-   * reward: number
+   * Update planet→outcome transition model.
    */
   update(planetKey, outcomeKey, reward) {
-    const alpha_T = this.alpha_T;
-    const alpha_R = this.alpha_R;
     const otherOutcome = outcomeKey === 'apple' ? 'salad' : 'apple';
+    const oldT = this.T_planet[planetKey][outcomeKey];
 
-    const oldT = this.T[planetKey][outcomeKey];
-    const oldR = this.R[outcomeKey];
-
-    // Update transition model
-    this.T[planetKey][outcomeKey] += alpha_T * (1 - this.T[planetKey][outcomeKey]);
-    this.T[planetKey][otherOutcome] = 1 - this.T[planetKey][outcomeKey];
-
-    // Update reward model
-    this.R[outcomeKey] += alpha_R * (reward - this.R[outcomeKey]);
+    this.T_planet[planetKey][outcomeKey] += this.alpha_T * (1 - this.T_planet[planetKey][outcomeKey]);
+    this.T_planet[planetKey][otherOutcome] = 1 - this.T_planet[planetKey][outcomeKey];
 
     this.lastUpdate = {
       planetKey,
       outcomeKey,
       reward,
       oldT,
-      newT: this.T[planetKey][outcomeKey],
-      oldR,
-      newR: this.R[outcomeKey],
+      newT: this.T_planet[planetKey][outcomeKey],
     };
-
     return this.lastUpdate;
+  }
+
+  /**
+   * Update rocket→planet transition model (only happens on choice trials).
+   */
+  updateRocket(rocketKey, planetKey) {
+    const planetState = planetKey + '_planet'; // 'red_planet' or 'green_planet'
+    const otherPlanet = planetState === 'red_planet' ? 'green_planet' : 'red_planet';
+    this.T_rocket[rocketKey][planetState] += this.alpha_T * (1 - this.T_rocket[rocketKey][planetState]);
+    this.T_rocket[rocketKey][otherPlanet] = 1 - this.T_rocket[rocketKey][planetState];
   }
 
   getQValues() {
@@ -155,9 +170,13 @@ export class MBAgent {
 
   getDisplayData() {
     return {
-      T: {
-        red: { ...this.T.red },
-        green: { ...this.T.green },
+      T_rocket: {
+        red: { ...this.T_rocket.red },
+        green: { ...this.T_rocket.green },
+      },
+      T_planet: {
+        red: { ...this.T_planet.red },
+        green: { ...this.T_planet.green },
       },
       R: { ...this.R },
       Q: this._computeQ(),
@@ -170,25 +189,26 @@ export class MBAgent {
 export class SRAgent {
   constructor() {
     this.alpha_SR = 0.3;
-    this.alpha_w = 0.3;
     this.reset();
   }
 
   reset() {
-    // Per-action M vectors from S_choice (length N_STATES each)
-    // M_red: occupancy when taking red rocket from choice
-    this.M_red = oneHot(STATES.S_CHOICE).slice();    // e[0]
-    this.M_green = oneHot(STATES.S_CHOICE).slice();  // e[0]
+    this.M_red = oneHot(STATES.S_CHOICE).slice();
+    this.M_green = oneHot(STATES.S_CHOICE).slice();
+    this.M_planet_red = oneHot(STATES.S_RED_PLANET).slice();
+    this.M_planet_green = oneHot(STATES.S_GREEN_PLANET).slice();
 
-    // M vectors from planet states
-    this.M_planet_red = oneHot(STATES.S_RED_PLANET).slice();   // e[1]
-    this.M_planet_green = oneHot(STATES.S_GREEN_PLANET).slice(); // e[2]
-
-    // Reward weights per state
+    // w is determined by goal, not learned
     this.w = new Float32Array(N_STATES);
+    this.w[STATES.S_APPLE] = 1; // default goal = apple
 
     this.lastUpdate = null;
     this.lastUpdatedRows = [];
+  }
+
+  setGoal(goal) {
+    this.w[STATES.S_APPLE] = goal === 'apple' ? 1 : 0;
+    this.w[STATES.S_SALAD] = goal === 'salad' ? 1 : 0;
   }
 
   selectAction() {
@@ -272,18 +292,8 @@ export class SRAgent {
    * reward: number
    */
   updateW(terminalState, reward) {
-    const alpha = this.alpha_w;
-    const oldW = this.w.slice();
-    this.w[terminalState] += alpha * (reward - this.w[terminalState]);
-
-    this.lastUpdate = {
-      terminalState,
-      reward,
-      oldW,
-      newW: this.w.slice(),
-    };
-
-    return this.lastUpdate;
+    // w is goal-based (set via setGoal), not learned from experience
+    return { terminalState, reward, oldW: Array.from(this.w), newW: Array.from(this.w) };
   }
 
   getQValues() {

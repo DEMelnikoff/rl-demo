@@ -101,12 +101,12 @@ function doStep() {
   const algoColor = COLORS[currentAlgo];
 
   taskDiagram.animateTrial(stepDesc, algoColor, () => {
+    isAnimating = false;
     algoPanel.update(currentAlgo, state, stepDesc);
     stepLog.render(state.stepLog, currentAlgo);
     qChart.render(state);
     phaseIndicator.render(state);
     updateControlsUI(state);
-    isAnimating = false;
 
     if (state.done) {
       stopPlay();

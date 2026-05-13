@@ -84,6 +84,7 @@ export class Simulation {
     this.currentPhaseIndex = 0;
     this.trialInPhase = 0;
     this.globalTrial = 0;
+    this.currentGoal = 'apple';
 
     // History of Q(red) for each algorithm, indexed by global trial
     this.history = {
@@ -140,6 +141,7 @@ export class Simulation {
     this.currentPhaseIndex = 0;
     this.trialInPhase = 0;
     this.globalTrial = 0;
+    this.currentGoal = null; // will sync on first step
     this.history = { mf: [], mb: [], sr: [] };
     this.stepLog = [];
     this.done = false;
@@ -154,6 +156,13 @@ export class Simulation {
 
     const phase = this.currentPhase;
     const { goal, transitions, agentAtChoice } = phase;
+
+    // Sync goal-based representations when goal changes
+    if (goal !== this.currentGoal) {
+      this.currentGoal = goal;
+      this.mb.setGoal(goal);
+      this.sr.setGoal(goal);
+    }
 
     let stepDesc;
 
@@ -230,6 +239,8 @@ export class Simulation {
       );
       const reward = getReward(terminalState, goal);
       const outcomeKey = terminalState === STATES.S_APPLE ? 'apple' : 'salad';
+      // Choice trials: agent observes rocket→planet transition AND planet→outcome
+      this.mb.updateRocket(action, planetKey);
       updates.mb = this.mb.update(planetKey, outcomeKey, reward);
       updates.mb.terminalState = terminalState;
       updates.mb.reward = reward;
@@ -246,11 +257,12 @@ export class Simulation {
       );
       const reward = getReward(terminalState, goal);
 
+      // Backward TD order: update planet-level M first so choice-level M
+      // can bootstrap from the already-updated planet SR
+      const planetUpdate = this.sr.updateFromPlanet(planetKey, terminalState);
+
       // Update M from choice (M_red or M_green)
       const choiceUpdate = this.sr.updateFromChoice(action);
-
-      // Update M from planet
-      const planetUpdate = this.sr.updateFromPlanet(planetKey, terminalState);
 
       // Update w
       const wUpdate = this.sr.updateW(terminalState, reward);

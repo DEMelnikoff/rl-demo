@@ -38,94 +38,74 @@ export class TaskDiagram {
 
   _render() {
     this.container.innerHTML = `
-      <svg id="task-svg" viewBox="0 0 800 180" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;">
+      <svg id="task-svg" viewBox="0 0 900 260" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;">
         <defs>
-          <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L8,3 z" fill="#475569"/>
+          <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto">
+            <path d="M0,0 L0,8 L10,4 z" fill="#475569"/>
           </marker>
-          <marker id="arrow-active" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-            <path d="M0,0 L0,6 L8,3 z" fill="#ffffff" id="arrow-active-path"/>
-          </marker>
-          <filter id="glow-mf"><feGaussianBlur stdDeviation="4" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
-          <filter id="glow-mb"><feGaussianBlur stdDeviation="4" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
-          <filter id="glow-sr"><feGaussianBlur stdDeviation="4" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
         </defs>
 
         <!-- RED chain -->
-        <!-- Red Rocket -->
-        <g id="node-red-rocket" class="task-node" transform="translate(70,55)">
-          <circle r="30" fill="#1E293B" stroke="#EF4444" stroke-width="2"/>
-          <text text-anchor="middle" dominant-baseline="central" font-size="22">🚀</text>
-          <text y="44" text-anchor="middle" font-size="10" fill="#94A3B8">red rocket</text>
+        <g id="node-red-rocket" class="task-node" transform="translate(85,75)">
+          <circle r="45" fill="#1E293B" stroke="#EF4444" stroke-width="2.5"/>
+          <text text-anchor="middle" dominant-baseline="central" font-size="38">🚀</text>
+          <text y="65" text-anchor="middle" font-size="13" fill="#94A3B8">red rocket</text>
         </g>
 
-        <!-- Arrow: red rocket -> red planet -->
-        <line id="arrow-red-rocket-to-planet" x1="102" y1="55" x2="218" y2="55"
-          stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+        <line id="arrow-red-rocket-to-planet" x1="135" y1="75" x2="295" y2="75"
+          stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
 
-        <!-- Red Planet -->
-        <g id="node-red-planet" class="task-node" transform="translate(250,55)">
-          <circle r="30" fill="#1E293B" stroke="#EF4444" stroke-width="2"/>
-          <text text-anchor="middle" dominant-baseline="central" font-size="22">🪐</text>
-          <text y="44" text-anchor="middle" font-size="10" fill="#94A3B8">red planet</text>
+        <g id="node-red-planet" class="task-node" transform="translate(345,75)">
+          <circle r="45" fill="#1E293B" stroke="#EF4444" stroke-width="2.5"/>
+          <text text-anchor="middle" dominant-baseline="central" font-size="38">🪐</text>
+          <text y="65" text-anchor="middle" font-size="13" fill="#94A3B8">red planet</text>
         </g>
 
-        <!-- Arrow: red planet -> apple (baseline) -->
-        <line id="arrow-red-to-apple" x1="282" y1="55" x2="398" y2="55"
-          stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
-        <!-- Arrow: red planet -> salad (swapped) — hidden by default -->
-        <line id="arrow-red-to-salad" x1="282" y1="63" x2="398" y2="130"
-          stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="5,3" opacity="0"/>
+        <line id="arrow-red-to-apple" x1="395" y1="75" x2="555" y2="75"
+          stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+        <line id="arrow-red-to-salad" x1="395" y1="90" x2="555" y2="170"
+          stroke="#475569" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="6,4" opacity="0"/>
 
-        <!-- Apple -->
-        <g id="node-apple" class="task-node" transform="translate(430,55)">
-          <circle r="30" fill="#1E293B" stroke="#22C55E" stroke-width="2"/>
-          <text text-anchor="middle" dominant-baseline="central" font-size="22">🍎</text>
-          <text y="44" text-anchor="middle" font-size="10" fill="#94A3B8">apple</text>
+        <g id="node-apple" class="task-node" transform="translate(605,75)">
+          <circle r="45" fill="#1E293B" stroke="#22C55E" stroke-width="2.5"/>
+          <text text-anchor="middle" dominant-baseline="central" font-size="38">🍎</text>
+          <text y="65" text-anchor="middle" font-size="13" fill="#94A3B8">apple</text>
         </g>
 
-        <!-- Reward label red chain -->
-        <text id="reward-label-red" x="560" y="59" text-anchor="start" font-size="13" fill="#94A3B8">r = <tspan id="reward-val-red" font-weight="bold" fill="#22C55E">1.0</tspan></text>
+        <text id="reward-label-red" x="700" y="80" text-anchor="start" font-size="18" fill="#94A3B8">r = <tspan id="reward-val-red" font-weight="bold" fill="#22C55E">1.0</tspan></text>
 
         <!-- GREEN chain -->
-        <!-- Green Rocket -->
-        <g id="node-green-rocket" class="task-node" transform="translate(70,130)">
-          <circle r="30" fill="#1E293B" stroke="#22C55E" stroke-width="2"/>
-          <text text-anchor="middle" dominant-baseline="central" font-size="22">🚀</text>
-          <text y="44" text-anchor="middle" font-size="10" fill="#94A3B8">green rocket</text>
+        <g id="node-green-rocket" class="task-node" transform="translate(85,185)">
+          <circle r="45" fill="#1E293B" stroke="#22C55E" stroke-width="2.5"/>
+          <text text-anchor="middle" dominant-baseline="central" font-size="38">🚀</text>
+          <text y="65" text-anchor="middle" font-size="13" fill="#94A3B8">green rocket</text>
         </g>
 
-        <!-- Arrow: green rocket -> green planet -->
-        <line id="arrow-green-rocket-to-planet" x1="102" y1="130" x2="218" y2="130"
-          stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
+        <line id="arrow-green-rocket-to-planet" x1="135" y1="185" x2="295" y2="185"
+          stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
 
-        <!-- Green Planet -->
-        <g id="node-green-planet" class="task-node" transform="translate(250,130)">
-          <circle r="30" fill="#1E293B" stroke="#22C55E" stroke-width="2"/>
-          <text text-anchor="middle" dominant-baseline="central" font-size="22">🪐</text>
-          <text y="44" text-anchor="middle" font-size="10" fill="#94A3B8">green planet</text>
+        <g id="node-green-planet" class="task-node" transform="translate(345,185)">
+          <circle r="45" fill="#1E293B" stroke="#22C55E" stroke-width="2.5"/>
+          <text text-anchor="middle" dominant-baseline="central" font-size="38">🪐</text>
+          <text y="65" text-anchor="middle" font-size="13" fill="#94A3B8">green planet</text>
         </g>
 
-        <!-- Arrow: green planet -> salad (baseline) -->
-        <line id="arrow-green-to-salad" x1="282" y1="130" x2="398" y2="130"
-          stroke="#475569" stroke-width="2" marker-end="url(#arrow)"/>
-        <!-- Arrow: green planet -> apple (swapped) — hidden by default -->
-        <line id="arrow-green-to-apple" x1="282" y1="122" x2="398" y2="47"
-          stroke="#475569" stroke-width="1.5" marker-end="url(#arrow)" stroke-dasharray="5,3" opacity="0"/>
+        <line id="arrow-green-to-salad" x1="395" y1="185" x2="555" y2="185"
+          stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+        <line id="arrow-green-to-apple" x1="395" y1="170" x2="555" y2="90"
+          stroke="#475569" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="6,4" opacity="0"/>
 
-        <!-- Salad -->
-        <g id="node-salad" class="task-node" transform="translate(430,130)">
-          <circle r="30" fill="#1E293B" stroke="#22C55E" stroke-width="2"/>
-          <text text-anchor="middle" dominant-baseline="central" font-size="22">🥗</text>
-          <text y="44" text-anchor="middle" font-size="10" fill="#94A3B8">salad</text>
+        <g id="node-salad" class="task-node" transform="translate(605,185)">
+          <circle r="45" fill="#1E293B" stroke="#22C55E" stroke-width="2.5"/>
+          <text text-anchor="middle" dominant-baseline="central" font-size="38">🥗</text>
+          <text y="65" text-anchor="middle" font-size="13" fill="#94A3B8">salad</text>
         </g>
 
-        <!-- Reward label green chain -->
-        <text id="reward-label-green" x="560" y="134" text-anchor="start" font-size="13" fill="#94A3B8">r = <tspan id="reward-val-green" font-weight="bold" fill="#94A3B8">0.0</tspan></text>
+        <text id="reward-label-green" x="700" y="190" text-anchor="start" font-size="18" fill="#94A3B8">r = <tspan id="reward-val-green" font-weight="bold" fill="#94A3B8">0.0</tspan></text>
 
         <!-- Goal label -->
-        <text id="goal-label" x="695" y="92" text-anchor="middle" font-size="12" fill="#94A3B8">goal:</text>
-        <text id="goal-value" x="695" y="110" text-anchor="middle" font-size="20">🍎</text>
+        <text id="goal-label" x="830" y="125" text-anchor="middle" font-size="14" fill="#94A3B8">goal:</text>
+        <text id="goal-value" x="830" y="155" text-anchor="middle" font-size="32">🍎</text>
       </svg>
     `;
 
@@ -316,20 +296,12 @@ export class AlgorithmPanel {
     const preferred = simState[`${algo}Choice`];
 
     let representationHTML = '';
-    let description = '';
-    let name = '';
 
     if (algo === 'mf') {
-      name = 'Model-Free (TD Learning)';
-      description = 'Directly caches action values from trial-and-error experience. Updates Q-values using temporal difference errors — no world model needed, but slow to adapt when rewards or transitions change.';
       representationHTML = this._buildMFPanel(display, Q);
     } else if (algo === 'mb') {
-      name = 'Model-Based';
-      description = 'Builds an explicit model of transitions (T) and rewards (R), then plans ahead. Adapts quickly when either T or R changes, because it re-computes values on the fly.';
       representationHTML = this._buildMBPanel(display, Q);
     } else {
-      name = 'Successor Representation (SR)';
-      description = 'Caches expected future state occupancy (M) separately from reward weights (w). Instantly adapts to reward changes (w updates), but needs new experience to update occupancy after transition changes.';
       representationHTML = this._buildSRPanel(display, Q);
     }
 
@@ -337,10 +309,6 @@ export class AlgorithmPanel {
 
     return `
       <div class="algo-panel-inner">
-        <div class="algo-header">
-          <span class="algo-badge" style="background:${algoColor}22;border-color:${algoColor};color:${algoColor}">${name}</span>
-        </div>
-        <p class="algo-description">${description}</p>
         ${representationHTML}
         <div class="q-value-section">
           <div class="q-bar-label">Q(red rocket)</div>
@@ -407,49 +375,81 @@ export class AlgorithmPanel {
   }
 
   _buildMBPanel(display, Q) {
-    const { T, R } = display;
+    const { T_rocket, T_planet, R } = display;
     return `
       <div class="repr-section">
-        <div class="repr-title">Transition Model T</div>
+        <div class="repr-title">Rocket → Planet (T)</div>
         <div class="mb-grid">
           <div class="mb-grid-header"></div>
-          <div class="mb-grid-header" style="color:#EF4444">→ 🍎 apple</div>
-          <div class="mb-grid-header" style="color:#22C55E">→ 🥗 salad</div>
+          <div class="mb-grid-header" style="color:#EF4444">→ red 🪐</div>
+          <div class="mb-grid-header" style="color:#22C55E">→ green 🪐</div>
+          <div class="mb-grid-label" style="color:#EF4444">red 🚀</div>
+          <div class="mb-cell" id="mb-Tr-red-red">
+            <div class="mb-prob-bar" style="width:${(T_rocket.red.red_planet*100).toFixed(0)}%;background:#EF444466"></div>
+            <span>${T_rocket.red.red_planet.toFixed(2)}</span>
+          </div>
+          <div class="mb-cell" id="mb-Tr-red-green">
+            <div class="mb-prob-bar" style="width:${(T_rocket.red.green_planet*100).toFixed(0)}%;background:#22C55E66"></div>
+            <span>${T_rocket.red.green_planet.toFixed(2)}</span>
+          </div>
+          <div class="mb-grid-label" style="color:#22C55E">green 🚀</div>
+          <div class="mb-cell" id="mb-Tr-green-red">
+            <div class="mb-prob-bar" style="width:${(T_rocket.green.red_planet*100).toFixed(0)}%;background:#EF444466"></div>
+            <span>${T_rocket.green.red_planet.toFixed(2)}</span>
+          </div>
+          <div class="mb-cell" id="mb-Tr-green-green">
+            <div class="mb-prob-bar" style="width:${(T_rocket.green.green_planet*100).toFixed(0)}%;background:#22C55E66"></div>
+            <span>${T_rocket.green.green_planet.toFixed(2)}</span>
+          </div>
+        </div>
+
+        <div class="repr-title" style="margin-top:12px">Planet → Resource (T)</div>
+        <div class="mb-grid">
+          <div class="mb-grid-header"></div>
+          <div class="mb-grid-header">→ 🍎 apple</div>
+          <div class="mb-grid-header">→ 🥗 salad</div>
           <div class="mb-grid-label" style="color:#EF4444">red 🪐</div>
           <div class="mb-cell" id="mb-T-red-apple">
-            <div class="mb-prob-bar" style="width:${(T.red.apple*100).toFixed(0)}%;background:#EF444466"></div>
-            <span>${T.red.apple.toFixed(2)}</span>
+            <div class="mb-prob-bar" style="width:${(T_planet.red.apple*100).toFixed(0)}%;background:#EF444466"></div>
+            <span>${T_planet.red.apple.toFixed(2)}</span>
           </div>
           <div class="mb-cell" id="mb-T-red-salad">
-            <div class="mb-prob-bar" style="width:${(T.red.salad*100).toFixed(0)}%;background:#22C55E66"></div>
-            <span>${T.red.salad.toFixed(2)}</span>
+            <div class="mb-prob-bar" style="width:${(T_planet.red.salad*100).toFixed(0)}%;background:#22C55E66"></div>
+            <span>${T_planet.red.salad.toFixed(2)}</span>
           </div>
           <div class="mb-grid-label" style="color:#22C55E">green 🪐</div>
           <div class="mb-cell" id="mb-T-green-apple">
-            <div class="mb-prob-bar" style="width:${(T.green.apple*100).toFixed(0)}%;background:#EF444466"></div>
-            <span>${T.green.apple.toFixed(2)}</span>
+            <div class="mb-prob-bar" style="width:${(T_planet.green.apple*100).toFixed(0)}%;background:#EF444466"></div>
+            <span>${T_planet.green.apple.toFixed(2)}</span>
           </div>
           <div class="mb-cell" id="mb-T-green-salad">
-            <div class="mb-prob-bar" style="width:${(T.green.salad*100).toFixed(0)}%;background:#22C55E66"></div>
-            <span>${T.green.salad.toFixed(2)}</span>
+            <div class="mb-prob-bar" style="width:${(T_planet.green.salad*100).toFixed(0)}%;background:#22C55E66"></div>
+            <span>${T_planet.green.salad.toFixed(2)}</span>
           </div>
         </div>
-        <div class="repr-title" style="margin-top:10px">Reward Model R</div>
-        <div class="mf-qtable">
-          <div class="qtable-row">
-            <span class="qtable-label">R(🍎 apple)</span>
-            <div class="qtable-bar-track">
-              <div class="qtable-bar-fill" id="mb-R-apple" style="width:${this._qToWidth(R.apple)}%;background:${COLORS.mb}"></div>
-            </div>
-            <span class="qtable-val">${R.apple.toFixed(3)}</span>
+
+        ${this._buildRewardValues(R, COLORS.mb)}
+      </div>
+    `;
+  }
+
+  _buildRewardValues(R, color) {
+    return `
+      <div class="repr-title" style="margin-top:12px">Reward Values (goal-based)</div>
+      <div class="mf-qtable">
+        <div class="qtable-row">
+          <span class="qtable-label">R(🍎 apple)</span>
+          <div class="qtable-bar-track">
+            <div class="qtable-bar-fill" style="width:${R.apple * 100}%;background:${color}"></div>
           </div>
-          <div class="qtable-row">
-            <span class="qtable-label">R(🥗 salad)</span>
-            <div class="qtable-bar-track">
-              <div class="qtable-bar-fill" id="mb-R-salad" style="width:${this._qToWidth(R.salad)}%;background:${COLORS.mb}"></div>
-            </div>
-            <span class="qtable-val">${R.salad.toFixed(3)}</span>
+          <span class="qtable-val" style="color:${R.apple > 0 ? color : 'var(--text-muted)'}">${R.apple.toFixed(0)}</span>
+        </div>
+        <div class="qtable-row">
+          <span class="qtable-label">R(🥗 salad)</span>
+          <div class="qtable-bar-track">
+            <div class="qtable-bar-fill" style="width:${R.salad * 100}%;background:${color}"></div>
           </div>
+          <span class="qtable-val" style="color:${R.salad > 0 ? color : 'var(--text-muted)'}">${R.salad.toFixed(0)}</span>
         </div>
       </div>
     `;
@@ -457,19 +457,21 @@ export class AlgorithmPanel {
 
   _buildSRPanel(display, Q) {
     const { M_red, M_green, M_planet_red, M_planet_green, w, lastUpdatedRows } = display;
-    const rowLabels = ['red 🚀 (from choice)', 'green 🚀 (from choice)', 'red 🪐 (from planet)', 'green 🪐 (from planet)'];
-    const colLabels = ['choice', 'red 🪐', 'green 🪐', '🍎', '🥗'];
+    const rowLabels = ['red 🚀 (choice)', 'green 🚀 (choice)', 'red 🪐 (planet)', 'green 🪐 (planet)'];
+    // Skip S_choice column (index 0) — show only planet and terminal states
+    const colLabels = ['red 🪐', 'green 🪐', '🍎', '🥗'];
     const rows = [M_red, M_green, M_planet_red, M_planet_green];
 
-    const maxVal = Math.max(1, ...rows.flat(), ...w);
+    const maxVal = Math.max(1, ...rows.map(r => r.slice(1)).flat(), ...w);
 
     const cellHTML = rows.map((row, ri) => {
       const isFrozen = lastUpdatedRows && !lastUpdatedRows.includes(ri) && lastUpdatedRows.length > 0;
       const rowClass = isFrozen ? 'sr-row-frozen' : '';
+      // Slice off index 0 (S_choice column)
       return `
         <div class="sr-row ${rowClass}">
           <div class="sr-row-label">${rowLabels[ri]}</div>
-          ${row.map((val, ci) => {
+          ${row.slice(1).map((val, ci) => {
             const intensity = Math.min(1, Math.abs(val) / maxVal);
             const bg = `rgba(16,185,129,${intensity * 0.8})`;
             return `<div class="sr-cell" id="sr-cell-${ri}-${ci}" style="background:${bg}">${val.toFixed(2)}</div>`;
@@ -478,18 +480,8 @@ export class AlgorithmPanel {
       `;
     }).join('');
 
-    const wHTML = w.map((val, i) => {
-      const label = ['S_choice', 'red 🪐', 'green 🪐', '🍎 apple', '🥗 salad'][i];
-      return `
-        <div class="qtable-row">
-          <span class="qtable-label">${label}</span>
-          <div class="qtable-bar-track">
-            <div class="qtable-bar-fill" id="sr-w-${i}" style="width:${this._qToWidth(val)}%;background:${COLORS.sr}"></div>
-          </div>
-          <span class="qtable-val">${val.toFixed(3)}</span>
-        </div>
-      `;
-    }).join('');
+    // SR reward weights are shown the same way as MB's R (w[apple], w[salad])
+    const R = { apple: w[3], salad: w[4] };
 
     return `
       <div class="repr-section">
@@ -499,8 +491,7 @@ export class AlgorithmPanel {
           ${colLabels.map(l => `<div class="sr-col-label">${l}</div>`).join('')}
         </div>
         <div class="sr-matrix">${cellHTML}</div>
-        <div class="repr-title" style="margin-top:10px">Reward Weights w</div>
-        <div class="mf-qtable">${wHTML}</div>
+        ${this._buildRewardValues(R, COLORS.sr)}
       </div>
     `;
   }
@@ -590,7 +581,7 @@ export class StepLog {
       if (u && !u.noUpdate) {
         updateText = `
           <div class="step-eq">Q(${u.planetKey} 🪐) ← ${u.oldQplanet.toFixed(3)} + 0.3×(${u.reward} − ${u.oldQplanet.toFixed(3)}) = <strong style="color:${color}">${u.newQplanet.toFixed(3)}</strong></div>
-          <div class="step-eq">Q(choice, ${u.action} 🚀) ← ${u.oldQchoice.toFixed(3)} + 0.3×(${u.reward}+0.9×${u.newQplanet.toFixed(3)} − ${u.oldQchoice.toFixed(3)}) = <strong style="color:${color}">${u.newQchoice.toFixed(3)}</strong></div>
+          <div class="step-eq">Q(choice, ${u.action} 🚀) ← ${u.oldQchoice.toFixed(3)} + 0.3×(${u.newQplanet.toFixed(3)} − ${u.oldQchoice.toFixed(3)}) = <strong style="color:${color}">${u.newQchoice.toFixed(3)}</strong></div>
         `;
       } else {
         updateText = '<div class="step-eq">No update (agent not at choice state)</div>';
@@ -601,13 +592,13 @@ export class StepLog {
         if (step.type === 'choice') {
           updateText = `
             <div class="step-eq">T(${u.planetKey}→${u.outcomeKey}) ← ${u.oldT.toFixed(3)} + 0.5×(1 − ${u.oldT.toFixed(3)}) = <strong style="color:${color}">${u.newT.toFixed(3)}</strong></div>
-            <div class="step-eq">R(${u.outcomeKey}) ← ${u.oldR.toFixed(3)} + 0.3×(${u.reward} − ${u.oldR.toFixed(3)}) = <strong style="color:${color}">${u.newR.toFixed(3)}</strong></div>
+            <div class="step-eq">R(apple)=${u.reward === 1 ? '<strong style="color:' + color + '">1</strong>' : '0'}, R(salad)=${u.reward === 0 ? '<strong style="color:' + color + '">0</strong>' : '1'} (goal-based, fixed)</div>
           `;
         } else {
           const ru = u.redUpdate, gu = u.greenUpdate;
           updateText = `
-            <div class="step-eq">T(red→${ru.outcomeKey}) ← <strong style="color:${color}">${ru.newT.toFixed(3)}</strong> | R(${ru.outcomeKey}) ← <strong style="color:${color}">${ru.newR.toFixed(3)}</strong></div>
-            <div class="step-eq">T(green→${gu.outcomeKey}) ← <strong style="color:${color}">${gu.newT.toFixed(3)}</strong> | R(${gu.outcomeKey}) ← <strong style="color:${color}">${gu.newR.toFixed(3)}</strong></div>
+            <div class="step-eq">T(red→${ru.outcomeKey}) ← <strong style="color:${color}">${ru.newT.toFixed(3)}</strong></div>
+            <div class="step-eq">T(green→${gu.outcomeKey}) ← <strong style="color:${color}">${gu.newT.toFixed(3)}</strong></div>
           `;
         }
       }
@@ -779,32 +770,15 @@ export class QValueChart {
       .y(d => y(d.Qred))
       .curve(d3.curveMonotoneX);
 
-    algos.forEach(({ key, color, label }) => {
+    algos.forEach(({ key, color }) => {
       const data = history[key];
       if (data.length < 1) return;
-
       g.append('path')
         .datum(data)
         .attr('fill', 'none')
         .attr('stroke', color)
         .attr('stroke-width', 2)
         .attr('d', line);
-
-      // Legend dot
-      const legendX = innerW - 140 + algos.findIndex(a => a.key === key) * 50;
-    });
-
-    // Legend
-    const legendG = g.append('g').attr('transform', `translate(${innerW - 160}, ${-10})`);
-    algos.forEach(({ key, color, label }, i) => {
-      legendG.append('line')
-        .attr('x1', i * 60).attr('x2', i * 60 + 18)
-        .attr('y1', 10).attr('y2', 10)
-        .attr('stroke', color).attr('stroke-width', 2);
-      legendG.append('text')
-        .attr('x', i * 60 + 20).attr('y', 14)
-        .attr('fill', color).attr('font-size', 9)
-        .text(label);
     });
   }
 }
