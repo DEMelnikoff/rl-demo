@@ -148,19 +148,19 @@ function stopPlay() {
 
 function attachEventListeners() {
   // Phase tabs — switch phase mode at any time. Algorithm state persists.
+  // Re-clicking a revaluation tab re-applies its toggle (swap transitions / flip goal).
   document.querySelectorAll('.phase-tab').forEach(tab => {
     tab.addEventListener('click', () => {
-      const phaseId = tab.dataset.phase;
-      if (phaseId === sim.currentPhaseId) return;
-      sim.setPhase(phaseId);
+      sim.setPhase(tab.dataset.phase);
       renderAll();
     });
   });
 
-  // Algorithm toggle
+  // Algorithm toggle — also drives which agent's policy chooses actions in Choice Phase.
   document.querySelectorAll('.algo-toggle-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       currentAlgo = btn.dataset.algo;
+      sim.setActiveAlgo(currentAlgo);
       document.querySelectorAll('.algo-toggle-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
 

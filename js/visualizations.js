@@ -252,15 +252,13 @@ export class TaskDiagram {
       setTimeout(() => { this.highlightState(terminalState, algoColor); }, delay * 2);
       setTimeout(() => { this.highlightState(null, algoColor); if (onComplete) onComplete(); }, delay * 3);
     } else {
-      // Phase 2: show red planet then green planet
-      const redTerminal = stepDesc.updates.mf.redTerminal || STATES.S_APPLE;
-      const greenTerminal = stepDesc.updates.mf.greenTerminal || STATES.S_SALAD;
+      // Revaluation: animate the single planet → terminal transition for this step.
+      const planetState = stepDesc.animPlanet;
+      const terminalState = stepDesc.animTerminal;
 
-      setTimeout(() => { this.highlightState(STATES.S_RED_PLANET, algoColor); }, 0);
-      setTimeout(() => { this.highlightState(redTerminal, algoColor); }, delay);
-      setTimeout(() => { this.highlightState(STATES.S_GREEN_PLANET, algoColor); }, delay * 2);
-      setTimeout(() => { this.highlightState(greenTerminal, algoColor); }, delay * 3);
-      setTimeout(() => { this.highlightState(null, algoColor); if (onComplete) onComplete(); }, delay * 4);
+      setTimeout(() => { this.highlightState(planetState, algoColor); }, 0);
+      setTimeout(() => { this.highlightState(terminalState, algoColor); }, delay);
+      setTimeout(() => { this.highlightState(null, algoColor); if (onComplete) onComplete(); }, delay * 2);
     }
   }
 }
@@ -378,12 +376,12 @@ export class AlgorithmPanel {
     const { T_rocket, T_planet, R } = display;
     return `
       <div class="repr-section">
-        <div class="repr-title">Vehicles → Locations</div>
+        <div class="repr-title">Transition Matrix: Vehicles → Locations</div>
         <div class="mb-grid">
           <div class="mb-grid-header"></div>
-          <div class="mb-grid-header" style="color:#EF4444">→ 🪐</div>
-          <div class="mb-grid-header" style="color:#22C55E">→ 🏠</div>
-          <div class="mb-grid-label" style="color:#EF4444">🚀</div>
+          <div class="mb-grid-header">to 🪐</div>
+          <div class="mb-grid-header">to 🏠</div>
+          <div class="mb-grid-label">from 🚀</div>
           <div class="mb-cell" id="mb-Tr-red-red">
             <div class="mb-prob-bar" style="width:${(T_rocket.red.red_planet*100).toFixed(0)}%;background:#EF444466"></div>
             <span>${T_rocket.red.red_planet.toFixed(2)}</span>
@@ -392,7 +390,7 @@ export class AlgorithmPanel {
             <div class="mb-prob-bar" style="width:${(T_rocket.red.green_planet*100).toFixed(0)}%;background:#22C55E66"></div>
             <span>${T_rocket.red.green_planet.toFixed(2)}</span>
           </div>
-          <div class="mb-grid-label" style="color:#22C55E">🚗</div>
+          <div class="mb-grid-label">from 🚗</div>
           <div class="mb-cell" id="mb-Tr-green-red">
             <div class="mb-prob-bar" style="width:${(T_rocket.green.red_planet*100).toFixed(0)}%;background:#EF444466"></div>
             <span>${T_rocket.green.red_planet.toFixed(2)}</span>
@@ -403,12 +401,12 @@ export class AlgorithmPanel {
           </div>
         </div>
 
-        <div class="repr-title" style="margin-top:14px">Locations → Resources</div>
+        <div class="repr-title" style="margin-top:14px">Transition Matrix: Locations → Resources</div>
         <div class="mb-grid">
           <div class="mb-grid-header"></div>
-          <div class="mb-grid-header">→ 🍎</div>
-          <div class="mb-grid-header">→ 🥗</div>
-          <div class="mb-grid-label" style="color:#EF4444">🪐</div>
+          <div class="mb-grid-header">to 🍎</div>
+          <div class="mb-grid-header">to 🥗</div>
+          <div class="mb-grid-label">from 🪐</div>
           <div class="mb-cell" id="mb-T-red-apple">
             <div class="mb-prob-bar" style="width:${(T_planet.red.apple*100).toFixed(0)}%;background:#EF444466"></div>
             <span>${T_planet.red.apple.toFixed(2)}</span>
@@ -417,7 +415,7 @@ export class AlgorithmPanel {
             <div class="mb-prob-bar" style="width:${(T_planet.red.salad*100).toFixed(0)}%;background:#22C55E66"></div>
             <span>${T_planet.red.salad.toFixed(2)}</span>
           </div>
-          <div class="mb-grid-label" style="color:#22C55E">🏠</div>
+          <div class="mb-grid-label">from 🏠</div>
           <div class="mb-cell" id="mb-T-green-apple">
             <div class="mb-prob-bar" style="width:${(T_planet.green.apple*100).toFixed(0)}%;background:#EF444466"></div>
             <span>${T_planet.green.apple.toFixed(2)}</span>
@@ -438,14 +436,14 @@ export class AlgorithmPanel {
       <div class="repr-title" style="margin-top:12px">Reward Values (goal-based)</div>
       <div class="mf-qtable">
         <div class="qtable-row">
-          <span class="qtable-label">R(🍎 apple)</span>
+          <span class="qtable-label">R(🍎)</span>
           <div class="qtable-bar-track">
             <div class="qtable-bar-fill" style="width:${R.apple * 100}%;background:${color}"></div>
           </div>
           <span class="qtable-val" style="color:${R.apple > 0 ? color : 'var(--text-muted)'}">${R.apple.toFixed(0)}</span>
         </div>
         <div class="qtable-row">
-          <span class="qtable-label">R(🥗 salad)</span>
+          <span class="qtable-label">R(🥗)</span>
           <div class="qtable-bar-track">
             <div class="qtable-bar-fill" style="width:${R.salad * 100}%;background:${color}"></div>
           </div>
@@ -459,7 +457,7 @@ export class AlgorithmPanel {
     const { M_red, M_green, M_planet_red, M_planet_green, w, lastUpdatedRows } = display;
     const rowLabels = ['from 🚀', 'from 🚗', 'from 🪐', 'from 🏠'];
     // Skip S_choice column (index 0) — show only planet and terminal states
-    const colLabels = ['🪐', '🏠', '🍎', '🥗'];
+    const colLabels = ['to 🪐', 'to 🏠', 'to 🍎', 'to 🥗'];
     const rows = [M_red, M_green, M_planet_red, M_planet_green];
 
     const maxVal = Math.max(1, ...rows.map(r => r.slice(1)).flat(), ...w);
@@ -485,7 +483,7 @@ export class AlgorithmPanel {
 
     return `
       <div class="repr-section">
-        <div class="repr-title">Successor Matrix M</div>
+        <div class="repr-title">Successor Matrix</div>
         <div class="sr-col-labels">
           <div class="sr-row-label-spacer"></div>
           ${colLabels.map(l => `<div class="sr-col-label">${l}</div>`).join('')}
@@ -510,28 +508,18 @@ export class AlgorithmPanel {
     if (algo === 'mf' && stepDesc.updates?.mf) {
       const u = stepDesc.updates.mf;
       if (u.planetOnly) {
-        flash('mf-qplanet-red');
-        flash('mf-qplanet-green');
+        flash(`mf-qplanet-${u.planetKey}`);
       } else if (!u.noUpdate) {
         flash(`mf-qplanet-${u.planetKey}`);
         flash(`mf-qchoice-${u.action}`);
       }
     }
     if (algo === 'mb' && stepDesc.updates?.mb) {
-      if (!stepDesc.updates.mb.noUpdate) {
-        if (stepDesc.type === 'choice') {
-          const u = stepDesc.updates.mb;
-          flash(`mb-T-${u.planetKey}-${u.outcomeKey}`);
-          flash(`mb-R-${u.outcomeKey}`);
-        } else {
-          const u = stepDesc.updates.mb;
-          if (u.redUpdate) {
-            flash(`mb-T-red-${u.redUpdate.outcomeKey}`);
-          }
-          if (u.greenUpdate) {
-            flash(`mb-T-green-${u.greenUpdate.outcomeKey}`);
-          }
-        }
+      const u = stepDesc.updates.mb;
+      if (!u.noUpdate) {
+        // Both choice and planets phases now use the same shape: planetKey + outcomeKey.
+        flash(`mb-T-${u.planetKey}-${u.outcomeKey}`);
+        if (stepDesc.type === 'choice') flash(`mb-R-${u.outcomeKey}`);
       }
     }
     if (algo === 'sr' && stepDesc.updates?.sr) {
@@ -582,10 +570,8 @@ export class StepLog {
     if (algo === 'mf') {
       const u = step.updates?.mf;
       if (u && u.planetOnly) {
-        const ru = u.redUpdate, gu = u.greenUpdate;
         updateText = `
-          <div class="step-eq">Q(red 🪐) ← ${ru.oldQplanet.toFixed(3)} + 0.3×(${ru.reward} − ${ru.oldQplanet.toFixed(3)}) = <strong style="color:${color}">${ru.newQplanet.toFixed(3)}</strong></div>
-          <div class="step-eq">Q(green 🪐) ← ${gu.oldQplanet.toFixed(3)} + 0.3×(${gu.reward} − ${gu.oldQplanet.toFixed(3)}) = <strong style="color:${color}">${gu.newQplanet.toFixed(3)}</strong></div>
+          <div class="step-eq">Q(${u.planetKey} 🪐) ← ${u.oldQplanet.toFixed(3)} + 0.3×(${u.reward} − ${u.oldQplanet.toFixed(3)}) = <strong style="color:${color}">${u.newQplanet.toFixed(3)}</strong></div>
           <div class="step-eq">Q(choice) unchanged — agent did not visit choice state</div>
         `;
       } else if (u && !u.noUpdate) {
@@ -599,18 +585,12 @@ export class StepLog {
     } else if (algo === 'mb') {
       const u = step.updates?.mb;
       if (u && !u.noUpdate) {
-        if (step.type === 'choice') {
-          updateText = `
-            <div class="step-eq">T(${u.planetKey}→${u.outcomeKey}) ← ${u.oldT.toFixed(3)} + 0.5×(1 − ${u.oldT.toFixed(3)}) = <strong style="color:${color}">${u.newT.toFixed(3)}</strong></div>
-            <div class="step-eq">R(apple)=${u.reward === 1 ? '<strong style="color:' + color + '">1</strong>' : '0'}, R(salad)=${u.reward === 0 ? '<strong style="color:' + color + '">0</strong>' : '1'} (goal-based, fixed)</div>
-          `;
-        } else {
-          const ru = u.redUpdate, gu = u.greenUpdate;
-          updateText = `
-            <div class="step-eq">T(red→${ru.outcomeKey}) ← <strong style="color:${color}">${ru.newT.toFixed(3)}</strong></div>
-            <div class="step-eq">T(green→${gu.outcomeKey}) ← <strong style="color:${color}">${gu.newT.toFixed(3)}</strong></div>
-          `;
-        }
+        updateText = `
+          <div class="step-eq">T(${u.planetKey}→${u.outcomeKey}) ← ${u.oldT.toFixed(3)} + 0.5×(1 − ${u.oldT.toFixed(3)}) = <strong style="color:${color}">${u.newT.toFixed(3)}</strong></div>
+          ${step.type === 'choice'
+            ? `<div class="step-eq">R(apple)=${u.reward === 1 ? '<strong style="color:' + color + '">1</strong>' : '0'}, R(salad)=${u.reward === 0 ? '<strong style="color:' + color + '">0</strong>' : '1'} (goal-based, fixed)</div>`
+            : ''}
+        `;
       }
     } else if (algo === 'sr') {
       const u = step.updates?.sr;
@@ -625,8 +605,8 @@ export class StepLog {
           `;
         } else {
           updateText = `
-            <div class="step-eq">M_planet_red rows 2-3 updated; M_red/M_green <span style="color:#94A3B8">FROZEN</span></div>
-            <div class="step-eq">w updated from planet visits</div>
+            <div class="step-eq">M_planet_${u.planetKey} row updated from observed transition</div>
+            <div class="step-eq">M_red/M_green <span style="color:#94A3B8">FROZEN</span> (agent did not visit choice state)</div>
           `;
         }
       }
@@ -770,11 +750,12 @@ export class QValueChart {
       .attr('font-size', 14)
       .text('Q(🚀)');
 
-    // Lines for each algorithm
+    // Lines for each algorithm. MF is drawn LAST so it stays visible on top —
+    // with γ=1 and the same trajectory, MF Q_choice and SR Q can coincide exactly.
     const algos = [
-      { key: 'mf', color: COLORS.mf, label: 'Model-Free' },
       { key: 'mb', color: COLORS.mb, label: 'Model-Based' },
       { key: 'sr', color: COLORS.sr, label: 'SR' },
+      { key: 'mf', color: COLORS.mf, label: 'Model-Free' },
     ];
 
     const line = d3.line()
@@ -785,12 +766,14 @@ export class QValueChart {
     algos.forEach(({ key, color }) => {
       const data = history[key];
       if (data.length < 1) return;
-      g.append('path')
+      const path = g.append('path')
         .datum(data)
         .attr('fill', 'none')
         .attr('stroke', color)
         .attr('stroke-width', 2)
         .attr('d', line);
+      // MF is dashed so it stays distinguishable even when it coincides with SR.
+      if (key === 'mf') path.attr('stroke-dasharray', '5,4');
     });
   }
 }

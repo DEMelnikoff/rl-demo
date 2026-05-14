@@ -24,14 +24,24 @@ export const PHASE_MODES = {
     label: 'Transition Revaluation',
     color: '#F472B6',
     agentAtChoice: false,
-    onEnter: (sim) => { sim.currentTransitions = TRANSITION_SWAPPED; },
+    // Toggle transitions on each entry so re-clicking the tab re-applies a swap.
+    onEnter: (sim) => {
+      sim.currentTransitions = sim.currentTransitions === TRANSITION_BASELINE
+        ? TRANSITION_SWAPPED
+        : TRANSITION_BASELINE;
+      sim.nextPlanetIndex = 0;
+    },
   },
   outcome_reval: {
     id: 'outcome_reval',
     label: 'Outcome Revaluation',
     color: '#22D3EE',
     agentAtChoice: false,
-    onEnter: (sim) => { sim.currentGoal = 'salad'; },
+    // Toggle goal on each entry so re-clicking the tab re-applies a revaluation.
+    onEnter: (sim) => {
+      sim.currentGoal = sim.currentGoal === 'apple' ? 'salad' : 'apple';
+      sim.nextPlanetIndex = 0;
+    },
   },
 };
 
@@ -56,18 +66,30 @@ export class Simulation {
     this.phaseHistory = [{ trial: 0, phaseId: 'choice' }];
     this.stepLog = [];
     this.done = false;
+    // Alternates 0 (red planet) / 1 (green planet/house) during revaluation phases.
+    this.nextPlanetIndex = 0;
+    // Which agent drives the policy during Choice Phase. Updated from main.js
+    // whenever the algorithm toggle changes.
+    this.activeAlgo = 'mf';
   }
 
   get currentPhase() {
     return PHASE_MODES[this.currentPhaseId];
   }
 
+  setActiveAlgo(algo) {
+    this.activeAlgo = algo;
+  }
+
   setPhase(phaseId) {
-    if (phaseId === this.currentPhaseId) return;
     const newPhase = PHASE_MODES[phaseId];
+    const isSamePhase = phaseId === this.currentPhaseId;
+    // Always fire onEnter so re-clicks of a revaluation tab re-apply the toggle.
     if (newPhase.onEnter) newPhase.onEnter(this);
-    this.currentPhaseId = phaseId;
-    this.phaseHistory.push({ trial: this.globalTrial, phaseId });
+    if (!isSamePhase) {
+      this.currentPhaseId = phaseId;
+      this.phaseHistory.push({ trial: this.globalTrial, phaseId });
+    }
     // Immediately sync goal so display reflects new world state
     if (this.currentGoal !== this._lastSyncedGoal) {
       this._lastSyncedGoal = this.currentGoal;
@@ -89,6 +111,7 @@ export class Simulation {
     this.phaseHistory = [{ trial: 0, phaseId: 'choice' }];
     this.stepLog = [];
     this.done = false;
+    this.nextPlanetIndex = 0;
   }
 
   step() {
@@ -127,58 +150,36 @@ export class Simulation {
   }
 
   _stepFromChoice(goal, transitions) {
-    const mfAction = this.mf.selectAction();
-    const mbAction = this.mb.selectAction();
-    const srAction = this.sr.selectAction();
+    // The active algorithm drives the policy; all three agents update from the
+    // same observed trajectory.
+    const activeAgent = this.activeAlgo === 'mb' ? this.mb
+      : this.activeAlgo === 'sr' ? this.sr
+      : this.mf;
+    const action = activeAgent.selectAction();
+    const planetKey = action;
+    const planetState = action === 'red' ? STATES.S_RED_PLANET : STATES.S_GREEN_PLANET;
+    const terminalState = getNextState(planetState, null, transitions);
+    const reward = getReward(terminalState, goal);
+    const outcomeKey = terminalState === STATES.S_APPLE ? 'apple' : 'salad';
 
-    const actions = { mf: mfAction, mb: mbAction, sr: srAction };
     const updates = {};
 
-    // MF
-    {
-      const action = mfAction;
-      const planetKey = action;
-      const terminalState = getNextState(
-        action === 'red' ? STATES.S_RED_PLANET : STATES.S_GREEN_PLANET,
-        null, transitions,
-      );
-      const reward = getReward(terminalState, goal);
-      updates.mf = this.mf.update(action, planetKey, reward);
-      updates.mf.terminalState = terminalState;
-      updates.mf.reward = reward;
-    }
+    // MF: full two-step TD
+    updates.mf = this.mf.update(action, planetKey, reward);
+    updates.mf.terminalState = terminalState;
+    updates.mf.reward = reward;
 
-    // MB
-    {
-      const action = mbAction;
-      const planetKey = action;
-      const terminalState = getNextState(
-        action === 'red' ? STATES.S_RED_PLANET : STATES.S_GREEN_PLANET,
-        null, transitions,
-      );
-      const reward = getReward(terminalState, goal);
-      const outcomeKey = terminalState === STATES.S_APPLE ? 'apple' : 'salad';
-      this.mb.updateRocket(action, planetKey);
-      updates.mb = this.mb.update(planetKey, outcomeKey, reward);
-      updates.mb.terminalState = terminalState;
-      updates.mb.reward = reward;
-    }
+    // MB: update both rocket→planet and planet→outcome from observed transition
+    this.mb.updateRocket(action, planetKey);
+    updates.mb = this.mb.update(planetKey, outcomeKey, reward);
+    updates.mb.terminalState = terminalState;
+    updates.mb.reward = reward;
 
-    // SR
-    {
-      const action = srAction;
-      const planetKey = action;
-      const terminalState = getNextState(
-        action === 'red' ? STATES.S_RED_PLANET : STATES.S_GREEN_PLANET,
-        null, transitions,
-      );
-      const reward = getReward(terminalState, goal);
-      // Backward TD order
-      const planetUpdate = this.sr.updateFromPlanet(planetKey, terminalState);
-      const choiceUpdate = this.sr.updateFromChoice(action);
-      const wUpdate = this.sr.updateW(terminalState, reward);
-      updates.sr = { choiceUpdate, planetUpdate, wUpdate, terminalState, reward, action };
-    }
+    // SR: backward TD update of M_planet then M_choice, plus reward weights
+    const planetUpdate = this.sr.updateFromPlanet(planetKey, terminalState);
+    const choiceUpdate = this.sr.updateFromChoice(action);
+    const wUpdate = this.sr.updateW(terminalState, reward);
+    updates.sr = { choiceUpdate, planetUpdate, wUpdate, terminalState, reward, action };
 
     return {
       type: 'choice',
@@ -186,53 +187,49 @@ export class Simulation {
       trial: this.globalTrial,
       goal,
       transitions,
-      actions,
+      action,
+      activeAlgo: this.activeAlgo,
       updates,
-      animAction: mfAction,
-      animPlanet: mfAction === 'red' ? STATES.S_RED_PLANET : STATES.S_GREEN_PLANET,
-      animTerminal: getNextState(
-        mfAction === 'red' ? STATES.S_RED_PLANET : STATES.S_GREEN_PLANET,
-        null, transitions,
-      ),
+      animAction: action,
+      animPlanet: planetState,
+      animTerminal: terminalState,
     };
   }
 
   _stepFromPlanets(goal, transitions) {
+    // Alternate between red planet and green planet (house) across steps.
+    const planetKey = this.nextPlanetIndex === 0 ? 'red' : 'green';
+    this.nextPlanetIndex = 1 - this.nextPlanetIndex;
+
+    const planetState = planetKey === 'red' ? STATES.S_RED_PLANET : STATES.S_GREEN_PLANET;
+    const terminalState = getNextState(planetState, null, transitions);
+    const reward = getReward(terminalState, goal);
+    const outcomeKey = terminalState === STATES.S_APPLE ? 'apple' : 'salad';
+
     const updates = {};
 
-    const redTerminal = getNextState(STATES.S_RED_PLANET, null, transitions);
-    const greenTerminal = getNextState(STATES.S_GREEN_PLANET, null, transitions);
-    const redReward = getReward(redTerminal, goal);
-    const greenReward = getReward(greenTerminal, goal);
+    // MF: planet Q only, Q_choice untouched (textbook MF failure to revalue)
+    const mfUpdate = this.mf.updatePlanetOnly(planetKey, reward);
+    mfUpdate.terminalState = terminalState;
+    mfUpdate.reward = reward;
+    updates.mf = { planetOnly: true, planetKey, terminalState, reward, ...mfUpdate };
 
-    const redOutcomeKey = redTerminal === STATES.S_APPLE ? 'apple' : 'salad';
-    const greenOutcomeKey = greenTerminal === STATES.S_APPLE ? 'apple' : 'salad';
+    // MB: update planet→outcome transition
+    const mbUpdate = this.mb.update(planetKey, outcomeKey, reward);
+    mbUpdate.terminalState = terminalState;
+    mbUpdate.reward = reward;
+    updates.mb = mbUpdate;
 
-    const mfRedUpdate = this.mf.updatePlanetOnly('red', redReward);
-    const mfGreenUpdate = this.mf.updatePlanetOnly('green', greenReward);
-    updates.mf = {
-      planetOnly: true,
-      redUpdate: mfRedUpdate,
-      greenUpdate: mfGreenUpdate,
-      redTerminal, greenTerminal, redReward, greenReward,
-    };
-
-    const mbRedUpdate = this.mb.update('red', redOutcomeKey, redReward);
-    const mbGreenUpdate = this.mb.update('green', greenOutcomeKey, greenReward);
-    updates.mb = { redUpdate: mbRedUpdate, greenUpdate: mbGreenUpdate, redReward, greenReward };
-
-    const srRedPlanetUpdate = this.sr.updateFromPlanet('red', redTerminal);
-    const srGreenPlanetUpdate = this.sr.updateFromPlanet('green', greenTerminal);
-    const srRedWUpdate = this.sr.updateW(redTerminal, redReward);
-    const srGreenWUpdate = this.sr.updateW(greenTerminal, greenReward);
-
+    // SR: update M_planet_<color> row and w
+    const planetUpdate = this.sr.updateFromPlanet(planetKey, terminalState);
+    const wUpdate = this.sr.updateW(terminalState, reward);
     updates.sr = {
-      redPlanetUpdate: srRedPlanetUpdate,
-      greenPlanetUpdate: srGreenPlanetUpdate,
-      redWUpdate: srRedWUpdate,
-      greenWUpdate: srGreenWUpdate,
-      redTerminal, greenTerminal, redReward, greenReward,
-      frozenRows: [0, 1],
+      planetOnly: true,
+      planetKey,
+      planetUpdate,
+      wUpdate,
+      terminalState,
+      reward,
     };
 
     return {
@@ -241,9 +238,10 @@ export class Simulation {
       trial: this.globalTrial,
       goal,
       transitions,
+      planetKey,
       updates,
-      animPlanet: STATES.S_RED_PLANET,
-      animTerminal: redTerminal,
+      animPlanet: planetState,
+      animTerminal: terminalState,
     };
   }
 
