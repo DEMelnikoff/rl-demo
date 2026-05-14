@@ -2,14 +2,20 @@
 
 import { STATES, N_STATES, ACTIONS, oneHot, softmax, sampleAction } from './task.js';
 
-const GAMMA = 1.0;
-const BETA = 5;
+// Live, mutable parameters. The settings overlay edits these and the next
+// agent step picks up the new values automatically.
+export const PARAMS = {
+  alpha_mf: 0.3,
+  alpha_mb: 0.5,
+  alpha_sr: 0.3,
+  beta: 5,
+  gamma: 1.0,
+};
 
 // ─── Model-Free Agent ──────────────────────────────────────────────────────────
 
 export class MFAgent {
   constructor() {
-    this.alpha = 0.3;
     this.reset();
   }
 
@@ -28,12 +34,12 @@ export class MFAgent {
    * returns { action, planetKey, reward, updates }
    */
   selectAction() {
-    return sampleAction(softmax(this.Q_choice, BETA));
+    return sampleAction(softmax(this.Q_choice, PARAMS.beta));
   }
 
   update(action, planetKey, reward) {
-    const alpha = this.alpha;
-    const gamma = GAMMA;
+    const alpha = PARAMS.alpha_mf;
+    const gamma = PARAMS.gamma;
 
     const oldQplanet = this.Q_planet[planetKey];
     const oldQchoice = this.Q_choice[action];
@@ -67,7 +73,7 @@ export class MFAgent {
   // behind MF failure to revalue — Q_planet shifts but Q_choice doesn't catch up until
   // the agent visits S_choice again.
   updatePlanetOnly(planetKey, reward) {
-    const alpha = this.alpha;
+    const alpha = PARAMS.alpha_mf;
     const oldQplanet = this.Q_planet[planetKey];
     const deltaplanet = reward - oldQplanet;
     this.Q_planet[planetKey] += alpha * deltaplanet;
@@ -103,33 +109,36 @@ export class MFAgent {
 
 export class MBAgent {
   constructor() {
-    this.alpha_T = 0.5;
     this.reset();
   }
 
   reset() {
-    // T_rocket[action][planet]: probability that rocket action leads to planet
+    // T_rocket[action][planet]: probability that rocket action leads to planet.
+    // Start at 0 — no prior. First observation seeds the model.
     this.T_rocket = {
-      red:   { red_planet: 0.5, green_planet: 0.5 },
-      green: { red_planet: 0.5, green_planet: 0.5 },
+      red:   { red_planet: 0, green_planet: 0 },
+      green: { red_planet: 0, green_planet: 0 },
     };
-    // T_planet[planet][outcome]: probability that planet leads to outcome
+    // T_planet[planet][outcome]: probability that planet leads to outcome.
     this.T_planet = {
-      red:   { apple: 0.5, salad: 0.5 },
-      green: { apple: 0.5, salad: 0.5 },
+      red:   { apple: 0, salad: 0 },
+      green: { apple: 0, salad: 0 },
     };
-    // R is determined by goal, not learned
-    this.R = { apple: 1, salad: 0 };
+    // R is determined by goal, not learned. Disfavored item is punished (-1).
+    this.R = { apple: 1, salad: -1 };
     this.lastUpdate = null;
   }
 
   setGoal(goal) {
-    this.R = { apple: goal === 'apple' ? 1 : 0, salad: goal === 'salad' ? 1 : 0 };
+    this.R = {
+      apple: goal === 'apple' ? 1 : -1,
+      salad: goal === 'salad' ? 1 : -1,
+    };
   }
 
   selectAction() {
     const Q = this._computeQ();
-    return sampleAction(softmax(Q, BETA));
+    return sampleAction(softmax(Q, PARAMS.beta));
   }
 
   _computeQ() {
@@ -138,7 +147,7 @@ export class MBAgent {
       this.T_planet[planet].apple * this.R.apple +
       this.T_planet[planet].salad * this.R.salad;
 
-    const g2 = GAMMA * GAMMA;
+    const g2 = PARAMS.gamma * PARAMS.gamma;
     const Qred = g2 * (
       this.T_rocket.red.red_planet * planetValue('red') +
       this.T_rocket.red.green_planet * planetValue('green')
@@ -157,7 +166,7 @@ export class MBAgent {
     const otherOutcome = outcomeKey === 'apple' ? 'salad' : 'apple';
     const oldT = this.T_planet[planetKey][outcomeKey];
 
-    this.T_planet[planetKey][outcomeKey] += this.alpha_T * (1 - this.T_planet[planetKey][outcomeKey]);
+    this.T_planet[planetKey][outcomeKey] += PARAMS.alpha_mb * (1 - this.T_planet[planetKey][outcomeKey]);
     this.T_planet[planetKey][otherOutcome] = 1 - this.T_planet[planetKey][outcomeKey];
 
     this.lastUpdate = {
@@ -176,7 +185,7 @@ export class MBAgent {
   updateRocket(rocketKey, planetKey) {
     const planetState = planetKey + '_planet'; // 'red_planet' or 'green_planet'
     const otherPlanet = planetState === 'red_planet' ? 'green_planet' : 'red_planet';
-    this.T_rocket[rocketKey][planetState] += this.alpha_T * (1 - this.T_rocket[rocketKey][planetState]);
+    this.T_rocket[rocketKey][planetState] += PARAMS.alpha_mb * (1 - this.T_rocket[rocketKey][planetState]);
     this.T_rocket[rocketKey][otherPlanet] = 1 - this.T_rocket[rocketKey][planetState];
   }
 
@@ -209,7 +218,6 @@ export class MBAgent {
 
 export class SRAgent {
   constructor() {
-    this.alpha_SR = 0.3;
     this.reset();
   }
 
@@ -219,22 +227,23 @@ export class SRAgent {
     this.M_planet_red = oneHot(STATES.S_RED_PLANET).slice();
     this.M_planet_green = oneHot(STATES.S_GREEN_PLANET).slice();
 
-    // w is determined by goal, not learned
+    // w is determined by goal, not learned. Disfavored item is punished (-1).
     this.w = new Float32Array(N_STATES);
-    this.w[STATES.S_APPLE] = 1; // default goal = apple
+    this.w[STATES.S_APPLE] = 1;
+    this.w[STATES.S_SALAD] = -1;
 
     this.lastUpdate = null;
     this.lastUpdatedRows = [];
   }
 
   setGoal(goal) {
-    this.w[STATES.S_APPLE] = goal === 'apple' ? 1 : 0;
-    this.w[STATES.S_SALAD] = goal === 'salad' ? 1 : 0;
+    this.w[STATES.S_APPLE] = goal === 'apple' ? 1 : -1;
+    this.w[STATES.S_SALAD] = goal === 'salad' ? 1 : -1;
   }
 
   selectAction() {
     const Q = this._computeQ();
-    return sampleAction(softmax(Q, BETA));
+    return sampleAction(softmax(Q, PARAMS.beta));
   }
 
   _dot(a, b) {
@@ -255,8 +264,8 @@ export class SRAgent {
    * action: 'red' | 'green'
    */
   updateFromChoice(action) {
-    const alpha = this.alpha_SR;
-    const gamma = GAMMA;
+    const alpha = PARAMS.alpha_sr;
+    const gamma = PARAMS.gamma;
     const e0 = oneHot(STATES.S_CHOICE);
 
     if (action === 'red') {
@@ -283,8 +292,8 @@ export class SRAgent {
    * terminalState: STATES.S_APPLE or STATES.S_SALAD
    */
   updateFromPlanet(planetKey, terminalState) {
-    const alpha = this.alpha_SR;
-    const gamma = GAMMA;
+    const alpha = PARAMS.alpha_sr;
+    const gamma = PARAMS.gamma;
 
     if (planetKey === 'red') {
       const ePlanet = oneHot(STATES.S_RED_PLANET);   // e[1]

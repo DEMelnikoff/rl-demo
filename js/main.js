@@ -2,6 +2,16 @@
 
 import { Simulation, PHASE_MODES } from './simulation.js';
 import { TaskDiagram, AlgorithmPanel, StepLog, QValueChart, PhaseIndicator, COLORS } from './visualizations.js';
+import { PARAMS } from './algorithms.js';
+
+const PARAM_DEFAULTS = { ...PARAMS };
+const PARAM_SPECS = [
+  { key: 'alpha_mf', decimals: 2 },
+  { key: 'alpha_mb', decimals: 2 },
+  { key: 'alpha_sr', decimals: 2 },
+  { key: 'beta',     decimals: 1 },
+  { key: 'gamma',    decimals: 2 },
+];
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -231,6 +241,57 @@ function attachEventListeners() {
       b.style.background = `${color}22`;
     }
   });
+
+  // Settings overlay
+  attachSettingsListeners();
+}
+
+// ─── Settings Overlay ─────────────────────────────────────────────────────────
+
+function attachSettingsListeners() {
+  const overlay = document.getElementById('settings-overlay');
+  const openBtn = document.getElementById('open-settings-btn');
+  const closeBtn = document.getElementById('close-settings-btn');
+  const resetBtn = document.getElementById('reset-params-btn');
+
+  const syncInputs = () => {
+    PARAM_SPECS.forEach(({ key, decimals }) => {
+      const input = document.getElementById(`param-${key.replace('_', '-')}`);
+      const val = document.getElementById(`param-${key.replace('_', '-')}-val`);
+      if (input) input.value = PARAMS[key];
+      if (val) val.textContent = Number(PARAMS[key]).toFixed(decimals);
+    });
+  };
+
+  openBtn?.addEventListener('click', () => {
+    syncInputs();
+    overlay.style.display = 'flex';
+  });
+  closeBtn?.addEventListener('click', () => { overlay.style.display = 'none'; });
+  overlay?.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.style.display = 'none';
+  });
+
+  PARAM_SPECS.forEach(({ key, decimals }) => {
+    const id = `param-${key.replace('_', '-')}`;
+    const input = document.getElementById(id);
+    const valEl = document.getElementById(`${id}-val`);
+    input?.addEventListener('input', (e) => {
+      const v = parseFloat(e.target.value);
+      PARAMS[key] = v;
+      if (valEl) valEl.textContent = v.toFixed(decimals);
+      // Re-render so MB/SR Q values (computed live from PARAMS.gamma) refresh.
+      algoPanel.render(currentAlgo, sim.getState());
+    });
+  });
+
+  resetBtn?.addEventListener('click', () => {
+    Object.assign(PARAMS, PARAM_DEFAULTS);
+    syncInputs();
+    algoPanel.render(currentAlgo, sim.getState());
+  });
+
+  syncInputs();
 }
 
 // ─── Start ────────────────────────────────────────────────────────────────────

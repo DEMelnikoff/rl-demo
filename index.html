@@ -21,8 +21,57 @@
       <button class="phase-tab phase-choice active" data-phase="choice">Choice Phase</button>
       <button class="phase-tab phase-transition" data-phase="transition_reval">Transition Revaluation</button>
       <button class="phase-tab phase-outcome" data-phase="outcome_reval">Outcome Revaluation</button>
+      <button class="settings-btn" id="open-settings-btn" title="Settings">⚙ Settings</button>
     </div>
   </header>
+
+  <!-- ── Settings Overlay ─────────────────────────────────────────────────────── -->
+  <div id="settings-overlay" class="settings-overlay" style="display:none">
+    <div class="settings-panel">
+      <div class="settings-header">
+        <h2>Settings</h2>
+        <button class="btn" id="close-settings-btn">← Back</button>
+      </div>
+      <p class="settings-help">Changes apply immediately. Reset the simulation to clear learned values.</p>
+
+      <div class="settings-group">
+        <h3>Learning rates</h3>
+        <div class="settings-row">
+          <label for="param-alpha-mf">α (Model-Free)</label>
+          <input type="range" id="param-alpha-mf" min="0" max="1" step="0.05"/>
+          <span class="settings-val" id="param-alpha-mf-val">0.30</span>
+        </div>
+        <div class="settings-row">
+          <label for="param-alpha-mb">α (Model-Based)</label>
+          <input type="range" id="param-alpha-mb" min="0" max="1" step="0.05"/>
+          <span class="settings-val" id="param-alpha-mb-val">0.50</span>
+        </div>
+        <div class="settings-row">
+          <label for="param-alpha-sr">α (Successor Rep.)</label>
+          <input type="range" id="param-alpha-sr" min="0" max="1" step="0.05"/>
+          <span class="settings-val" id="param-alpha-sr-val">0.30</span>
+        </div>
+      </div>
+
+      <div class="settings-group">
+        <h3>Policy</h3>
+        <div class="settings-row">
+          <label for="param-beta">β (softmax inverse temperature)</label>
+          <input type="range" id="param-beta" min="0" max="20" step="0.5"/>
+          <span class="settings-val" id="param-beta-val">5.0</span>
+        </div>
+        <div class="settings-row">
+          <label for="param-gamma">γ (discount factor)</label>
+          <input type="range" id="param-gamma" min="0" max="1" step="0.05"/>
+          <span class="settings-val" id="param-gamma-val">1.00</span>
+        </div>
+      </div>
+
+      <div class="settings-footer">
+        <button class="btn" id="reset-params-btn">↺ Restore defaults</button>
+      </div>
+    </div>
+  </div>
 
   <!-- ── Done Banner ──────────────────────────────────────────────────────────── -->
   <div id="done-banner"></div>

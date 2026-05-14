@@ -49,7 +49,7 @@ export function getNextState(state, action, transitionConfig) {
 export function getReward(terminalState, goal) {
   if (terminalState === STATES.S_APPLE && goal === 'apple') return 1;
   if (terminalState === STATES.S_SALAD && goal === 'salad') return 1;
-  return 0;
+  return -1;
 }
 
 /**

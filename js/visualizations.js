@@ -43,65 +43,71 @@ export class TaskDiagram {
           <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto">
             <path d="M0,0 L0,8 L10,4 z" fill="#475569"/>
           </marker>
+          <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto">
+            <path d="M0,0 L0,8 L10,4 z" fill="#3B82F6"/>
+          </marker>
+          <marker id="arrow-purple" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto">
+            <path d="M0,0 L0,8 L10,4 z" fill="#A855F7"/>
+          </marker>
         </defs>
 
-        <!-- Top chain (rocket → planet → apple) -->
+        <!-- Top chain (rocket → planet → apple) — blue -->
         <g id="node-red-rocket" class="task-node" transform="translate(85,75)">
-          <circle r="45" fill="#1E293B" stroke="#EF4444" stroke-width="2.5"/>
+          <circle r="45" fill="#1E293B" stroke="#3B82F6" stroke-width="2.5"/>
           <text text-anchor="middle" dominant-baseline="central" font-size="38">🚀</text>
           <text y="65" text-anchor="middle" font-size="16" fill="#CBD5E1">rocket</text>
         </g>
 
         <line id="arrow-red-rocket-to-planet" x1="135" y1="75" x2="295" y2="75"
-          stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+          stroke="#3B82F6" stroke-width="2.5" marker-end="url(#arrow-blue)"/>
 
         <g id="node-red-planet" class="task-node" transform="translate(345,75)">
-          <circle r="45" fill="#1E293B" stroke="#EF4444" stroke-width="2.5"/>
+          <circle r="45" fill="#1E293B" stroke="#3B82F6" stroke-width="2.5"/>
           <text text-anchor="middle" dominant-baseline="central" font-size="38">🪐</text>
           <text y="65" text-anchor="middle" font-size="16" fill="#CBD5E1">planet</text>
         </g>
 
         <line id="arrow-red-to-apple" x1="395" y1="75" x2="555" y2="75"
-          stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+          stroke="#3B82F6" stroke-width="2.5" marker-end="url(#arrow-blue)"/>
         <line id="arrow-red-to-salad" x1="395" y1="100" x2="555" y2="200"
-          stroke="#475569" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="6,4" opacity="0"/>
+          stroke="#3B82F6" stroke-width="2" marker-end="url(#arrow-blue)" stroke-dasharray="6,4" opacity="0"/>
 
         <g id="node-apple" class="task-node" transform="translate(605,75)">
-          <circle r="45" fill="#1E293B" stroke="#EF4444" stroke-width="2.5"/>
+          <circle r="45" fill="#1E293B" stroke="#3B82F6" stroke-width="2.5"/>
           <text text-anchor="middle" dominant-baseline="central" font-size="38">🍎</text>
           <text y="65" text-anchor="middle" font-size="16" fill="#CBD5E1">apple</text>
         </g>
 
         <text id="reward-label-red" x="700" y="80" text-anchor="start" font-size="18" fill="#94A3B8">r = <tspan id="reward-val-red" font-weight="bold" fill="#22C55E">1.0</tspan></text>
 
-        <!-- Bottom chain (car → house → salad) -->
+        <!-- Bottom chain (car → house → salad) — purple -->
         <g id="node-green-rocket" class="task-node" transform="translate(85,225)">
-          <circle r="45" fill="#1E293B" stroke="#22C55E" stroke-width="2.5"/>
+          <circle r="45" fill="#1E293B" stroke="#A855F7" stroke-width="2.5"/>
           <text text-anchor="middle" dominant-baseline="central" font-size="38">🚗</text>
           <text y="65" text-anchor="middle" font-size="16" fill="#CBD5E1">car</text>
         </g>
 
         <line id="arrow-green-rocket-to-planet" x1="135" y1="225" x2="295" y2="225"
-          stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+          stroke="#A855F7" stroke-width="2.5" marker-end="url(#arrow-purple)"/>
 
         <g id="node-green-planet" class="task-node" transform="translate(345,225)">
-          <circle r="45" fill="#1E293B" stroke="#22C55E" stroke-width="2.5"/>
+          <circle r="45" fill="#1E293B" stroke="#A855F7" stroke-width="2.5"/>
           <text text-anchor="middle" dominant-baseline="central" font-size="38">🏠</text>
           <text y="65" text-anchor="middle" font-size="16" fill="#CBD5E1">house</text>
         </g>
 
         <line id="arrow-green-to-salad" x1="395" y1="225" x2="555" y2="225"
-          stroke="#475569" stroke-width="2.5" marker-end="url(#arrow)"/>
+          stroke="#A855F7" stroke-width="2.5" marker-end="url(#arrow-purple)"/>
         <line id="arrow-green-to-apple" x1="395" y1="200" x2="555" y2="100"
-          stroke="#475569" stroke-width="2" marker-end="url(#arrow)" stroke-dasharray="6,4" opacity="0"/>
+          stroke="#A855F7" stroke-width="2" marker-end="url(#arrow-purple)" stroke-dasharray="6,4" opacity="0"/>
 
         <g id="node-salad" class="task-node" transform="translate(605,225)">
-          <circle r="45" fill="#1E293B" stroke="#22C55E" stroke-width="2.5"/>
+          <circle r="45" fill="#1E293B" stroke="#A855F7" stroke-width="2.5"/>
           <text text-anchor="middle" dominant-baseline="central" font-size="38">🥗</text>
           <text y="65" text-anchor="middle" font-size="16" fill="#CBD5E1">salad</text>
         </g>
 
-        <text id="reward-label-green" x="700" y="230" text-anchor="start" font-size="18" fill="#94A3B8">r = <tspan id="reward-val-green" font-weight="bold" fill="#94A3B8">0.0</tspan></text>
+        <text id="reward-label-green" x="700" y="230" text-anchor="start" font-size="18" fill="#94A3B8">r = <tspan id="reward-val-green" font-weight="bold" fill="#EF4444">-1.0</tspan></text>
 
         <!-- Goal label (bigger) -->
         <text id="goal-label" x="830" y="125" text-anchor="middle" font-size="20" fill="#94A3B8">goal:</text>
@@ -144,11 +150,11 @@ export class TaskDiagram {
     if (goal === 'apple') {
       rewardValRed.textContent = '1.0';
       rewardValRed.setAttribute('fill', '#22C55E');
-      rewardValGreen.textContent = '0.0';
-      rewardValGreen.setAttribute('fill', '#94A3B8');
+      rewardValGreen.textContent = '-1.0';
+      rewardValGreen.setAttribute('fill', '#EF4444');
     } else {
-      rewardValRed.textContent = '0.0';
-      rewardValRed.setAttribute('fill', '#94A3B8');
+      rewardValRed.textContent = '-1.0';
+      rewardValRed.setAttribute('fill', '#EF4444');
       rewardValGreen.textContent = '1.0';
       rewardValGreen.setAttribute('fill', '#22C55E');
     }
@@ -308,14 +314,14 @@ export class AlgorithmPanel {
       <div class="q-value-section">
         <div class="q-bar-label">Q(🚀)</div>
         <div class="q-bar-track">
-          <div class="q-bar-fill" id="qbar-red-${algo}" style="width:${this._qToWidth(Q.red)}%;background:${algoColor}"></div>
+          <div class="q-bar-fill" id="qbar-red-${algo}" style="${this._qBarStyle(Q.red)}"></div>
         </div>
         <span class="q-bar-val">${Q.red.toFixed(3)}</span>
       </div>
       <div class="q-value-section">
         <div class="q-bar-label">Q(🚗)</div>
         <div class="q-bar-track">
-          <div class="q-bar-fill" id="qbar-green-${algo}" style="width:${this._qToWidth(Q.green)}%;background:${algoColor}"></div>
+          <div class="q-bar-fill" id="qbar-green-${algo}" style="${this._qBarStyle(Q.green)}"></div>
         </div>
         <span class="q-bar-val">${Q.green.toFixed(3)}</span>
       </div>
@@ -333,8 +339,22 @@ export class AlgorithmPanel {
     return Math.max(0, Math.min(100, q * 100));
   }
 
+  // Two-sided bar centered at the track midpoint. Positive q grows right in
+  // green, anchored at the center; negative q grows left in red, also anchored
+  // at the center. The center edge never moves, so the bar only ever extends or
+  // contracts on the outward side.
+  _qBarStyle(q) {
+    const abs = Math.min(1, Math.abs(q));
+    const halfWidth = abs * 50;
+    if (q >= 0) {
+      return `left:50%;width:${halfWidth}%;background:#22C55E`;
+    }
+    return `left:${50 - halfWidth}%;width:${halfWidth}%;background:#EF4444`;
+  }
+
   _buildMFPanel(display, Q) {
     const { Q_choice, Q_planet } = display;
+    const bar = (q) => this._qBarStyle(q);
     return `
       <div class="repr-section">
         <div class="repr-title">Q-Table</div>
@@ -342,28 +362,28 @@ export class AlgorithmPanel {
           <div class="qtable-row">
             <span class="qtable-label">Q(🚀)</span>
             <div class="qtable-bar-track">
-              <div class="qtable-bar-fill" id="mf-qchoice-red" style="width:${this._qToWidth(Q_choice.red)}%;background:${COLORS.mf}"></div>
+              <div class="qtable-bar-fill" id="mf-qchoice-red" style="${bar(Q_choice.red)}"></div>
             </div>
             <span class="qtable-val" id="mf-qchoice-red-val">${Q_choice.red.toFixed(3)}</span>
           </div>
           <div class="qtable-row">
             <span class="qtable-label">Q(🚗)</span>
             <div class="qtable-bar-track">
-              <div class="qtable-bar-fill" id="mf-qchoice-green" style="width:${this._qToWidth(Q_choice.green)}%;background:${COLORS.mf}"></div>
+              <div class="qtable-bar-fill" id="mf-qchoice-green" style="${bar(Q_choice.green)}"></div>
             </div>
             <span class="qtable-val" id="mf-qchoice-green-val">${Q_choice.green.toFixed(3)}</span>
           </div>
           <div class="qtable-row">
             <span class="qtable-label">Q(🪐)</span>
             <div class="qtable-bar-track">
-              <div class="qtable-bar-fill" id="mf-qplanet-red" style="width:${this._qToWidth(Q_planet.red)}%;background:${COLORS.mf}aa"></div>
+              <div class="qtable-bar-fill" id="mf-qplanet-red" style="${bar(Q_planet.red)}"></div>
             </div>
             <span class="qtable-val" id="mf-qplanet-red-val">${Q_planet.red.toFixed(3)}</span>
           </div>
           <div class="qtable-row">
             <span class="qtable-label">Q(🏠)</span>
             <div class="qtable-bar-track">
-              <div class="qtable-bar-fill" id="mf-qplanet-green" style="width:${this._qToWidth(Q_planet.green)}%;background:${COLORS.mf}aa"></div>
+              <div class="qtable-bar-fill" id="mf-qplanet-green" style="${bar(Q_planet.green)}"></div>
             </div>
             <span class="qtable-val" id="mf-qplanet-green-val">${Q_planet.green.toFixed(3)}</span>
           </div>
@@ -374,6 +394,8 @@ export class AlgorithmPanel {
 
   _buildMBPanel(display, Q) {
     const { T_rocket, T_planet, R } = display;
+    // Match SR cells: full-cell green-intensity background based on the value.
+    const probBg = (v) => `rgba(16,185,129,${Math.min(1, Math.max(0, v)) * 0.8})`;
     return `
       <div class="repr-section">
         <div class="repr-title">Transition Matrix: Vehicles → Locations</div>
@@ -382,21 +404,17 @@ export class AlgorithmPanel {
           <div class="mb-grid-header">to 🪐</div>
           <div class="mb-grid-header">to 🏠</div>
           <div class="mb-grid-label">from 🚀</div>
-          <div class="mb-cell" id="mb-Tr-red-red">
-            <div class="mb-prob-bar" style="width:${(T_rocket.red.red_planet*100).toFixed(0)}%;background:#EF444466"></div>
+          <div class="mb-cell" id="mb-Tr-red-red" style="background:${probBg(T_rocket.red.red_planet)}">
             <span>${T_rocket.red.red_planet.toFixed(2)}</span>
           </div>
-          <div class="mb-cell" id="mb-Tr-red-green">
-            <div class="mb-prob-bar" style="width:${(T_rocket.red.green_planet*100).toFixed(0)}%;background:#22C55E66"></div>
+          <div class="mb-cell" id="mb-Tr-red-green" style="background:${probBg(T_rocket.red.green_planet)}">
             <span>${T_rocket.red.green_planet.toFixed(2)}</span>
           </div>
           <div class="mb-grid-label">from 🚗</div>
-          <div class="mb-cell" id="mb-Tr-green-red">
-            <div class="mb-prob-bar" style="width:${(T_rocket.green.red_planet*100).toFixed(0)}%;background:#EF444466"></div>
+          <div class="mb-cell" id="mb-Tr-green-red" style="background:${probBg(T_rocket.green.red_planet)}">
             <span>${T_rocket.green.red_planet.toFixed(2)}</span>
           </div>
-          <div class="mb-cell" id="mb-Tr-green-green">
-            <div class="mb-prob-bar" style="width:${(T_rocket.green.green_planet*100).toFixed(0)}%;background:#22C55E66"></div>
+          <div class="mb-cell" id="mb-Tr-green-green" style="background:${probBg(T_rocket.green.green_planet)}">
             <span>${T_rocket.green.green_planet.toFixed(2)}</span>
           </div>
         </div>
@@ -407,47 +425,44 @@ export class AlgorithmPanel {
           <div class="mb-grid-header">to 🍎</div>
           <div class="mb-grid-header">to 🥗</div>
           <div class="mb-grid-label">from 🪐</div>
-          <div class="mb-cell" id="mb-T-red-apple">
-            <div class="mb-prob-bar" style="width:${(T_planet.red.apple*100).toFixed(0)}%;background:#EF444466"></div>
+          <div class="mb-cell" id="mb-T-red-apple" style="background:${probBg(T_planet.red.apple)}">
             <span>${T_planet.red.apple.toFixed(2)}</span>
           </div>
-          <div class="mb-cell" id="mb-T-red-salad">
-            <div class="mb-prob-bar" style="width:${(T_planet.red.salad*100).toFixed(0)}%;background:#22C55E66"></div>
+          <div class="mb-cell" id="mb-T-red-salad" style="background:${probBg(T_planet.red.salad)}">
             <span>${T_planet.red.salad.toFixed(2)}</span>
           </div>
           <div class="mb-grid-label">from 🏠</div>
-          <div class="mb-cell" id="mb-T-green-apple">
-            <div class="mb-prob-bar" style="width:${(T_planet.green.apple*100).toFixed(0)}%;background:#EF444466"></div>
+          <div class="mb-cell" id="mb-T-green-apple" style="background:${probBg(T_planet.green.apple)}">
             <span>${T_planet.green.apple.toFixed(2)}</span>
           </div>
-          <div class="mb-cell" id="mb-T-green-salad">
-            <div class="mb-prob-bar" style="width:${(T_planet.green.salad*100).toFixed(0)}%;background:#22C55E66"></div>
+          <div class="mb-cell" id="mb-T-green-salad" style="background:${probBg(T_planet.green.salad)}">
             <span>${T_planet.green.salad.toFixed(2)}</span>
           </div>
         </div>
 
-        ${this._buildRewardValues(R, COLORS.mb)}
+        ${this._buildRewardValues(R)}
       </div>
     `;
   }
 
-  _buildRewardValues(R, color) {
+  _buildRewardValues(R) {
+    const rColor = (v) => v > 0 ? '#22C55E' : (v < 0 ? '#EF4444' : 'var(--text-muted)');
     return `
       <div class="repr-title" style="margin-top:12px">Reward Values (goal-based)</div>
       <div class="mf-qtable">
         <div class="qtable-row">
           <span class="qtable-label">R(🍎)</span>
           <div class="qtable-bar-track">
-            <div class="qtable-bar-fill" style="width:${R.apple * 100}%;background:${color}"></div>
+            <div class="qtable-bar-fill" style="${this._qBarStyle(R.apple)}"></div>
           </div>
-          <span class="qtable-val" style="color:${R.apple > 0 ? color : 'var(--text-muted)'}">${R.apple.toFixed(0)}</span>
+          <span class="qtable-val" style="color:${rColor(R.apple)}">${R.apple.toFixed(0)}</span>
         </div>
         <div class="qtable-row">
           <span class="qtable-label">R(🥗)</span>
           <div class="qtable-bar-track">
-            <div class="qtable-bar-fill" style="width:${R.salad * 100}%;background:${color}"></div>
+            <div class="qtable-bar-fill" style="${this._qBarStyle(R.salad)}"></div>
           </div>
-          <span class="qtable-val" style="color:${R.salad > 0 ? color : 'var(--text-muted)'}">${R.salad.toFixed(0)}</span>
+          <span class="qtable-val" style="color:${rColor(R.salad)}">${R.salad.toFixed(0)}</span>
         </div>
       </div>
     `;
@@ -462,14 +477,20 @@ export class AlgorithmPanel {
 
     const maxVal = Math.max(1, ...rows.map(r => r.slice(1)).flat(), ...w);
 
+    // Self-transition cells (planet → itself) are constant by construction; mute them.
+    // Displayed cols are sliced from index 1, so ci=0 ↔ red_planet, ci=1 ↔ green_planet.
+    const isSelfCell = (ri, ci) => (ri === 2 && ci === 0) || (ri === 3 && ci === 1);
+
     const cellHTML = rows.map((row, ri) => {
-      const isFrozen = lastUpdatedRows && !lastUpdatedRows.includes(ri) && lastUpdatedRows.length > 0;
-      const rowClass = isFrozen ? 'sr-row-frozen' : '';
-      // Slice off index 0 (S_choice column)
+      // No frozen-row dimming — the brief cell-flash animation alone marks the
+      // updated row; the matrix returns to uniform appearance afterward.
       return `
-        <div class="sr-row ${rowClass}">
+        <div class="sr-row">
           <div class="sr-row-label">${rowLabels[ri]}</div>
           ${row.slice(1).map((val, ci) => {
+            if (isSelfCell(ri, ci)) {
+              return `<div class="sr-cell sr-cell-self" id="sr-cell-${ri}-${ci}">${val.toFixed(2)}</div>`;
+            }
             const intensity = Math.min(1, Math.abs(val) / maxVal);
             const bg = `rgba(16,185,129,${intensity * 0.8})`;
             return `<div class="sr-cell" id="sr-cell-${ri}-${ci}" style="background:${bg}">${val.toFixed(2)}</div>`;
@@ -489,37 +510,52 @@ export class AlgorithmPanel {
           ${colLabels.map(l => `<div class="sr-col-label">${l}</div>`).join('')}
         </div>
         <div class="sr-matrix">${cellHTML}</div>
-        ${this._buildRewardValues(R, COLORS.sr)}
+        ${this._buildRewardValues(R)}
       </div>
     `;
   }
 
   _flashUpdatedCells(algo, stepDesc, simState) {
-    // Flash relevant cells after update
-    const flash = (id) => {
+    // Flash matrix/T-cells: 4-sided white outline pulse.
+    const flashCell = (id) => {
       const el = document.getElementById(id);
       if (el) {
         el.classList.remove('flash-update');
-        void el.offsetWidth; // reflow
+        void el.offsetWidth;
         el.classList.add('flash-update');
       }
     };
 
+    // Flash a Q-bar's outward edge only — direction depends on the sign of the
+    // value, so the highlight always points the way the bar is extending.
+    const flashBar = (id, value) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const cls = value >= 0 ? 'bar-edge-flash-right' : 'bar-edge-flash-left';
+      el.classList.remove('bar-edge-flash-right', 'bar-edge-flash-left');
+      void el.offsetWidth;
+      el.classList.add(cls);
+    };
+
     if (algo === 'mf' && stepDesc.updates?.mf) {
       const u = stepDesc.updates.mf;
+      const Qp = simState.mfDisplay.Q_planet;
+      const Qc = simState.mfDisplay.Q_choice;
       if (u.planetOnly) {
-        flash(`mf-qplanet-${u.planetKey}`);
+        flashBar(`mf-qplanet-${u.planetKey}`, Qp[u.planetKey]);
       } else if (!u.noUpdate) {
-        flash(`mf-qplanet-${u.planetKey}`);
-        flash(`mf-qchoice-${u.action}`);
+        flashBar(`mf-qplanet-${u.planetKey}`, Qp[u.planetKey]);
+        flashBar(`mf-qchoice-${u.action}`, Qc[u.action]);
       }
     }
     if (algo === 'mb' && stepDesc.updates?.mb) {
       const u = stepDesc.updates.mb;
       if (!u.noUpdate) {
-        // Both choice and planets phases now use the same shape: planetKey + outcomeKey.
-        flash(`mb-T-${u.planetKey}-${u.outcomeKey}`);
-        if (stepDesc.type === 'choice') flash(`mb-R-${u.outcomeKey}`);
+        flashCell(`mb-T-${u.planetKey}-${u.outcomeKey}`);
+        // MB's Q values are derived from the model, so both can shift on any step.
+        const Q = simState.mbQ;
+        flashBar(`qbar-red-mb`, Q.red);
+        flashBar(`qbar-green-mb`, Q.green);
       }
     }
     if (algo === 'sr' && stepDesc.updates?.sr) {
@@ -529,10 +565,14 @@ export class AlgorithmPanel {
       if (display.lastUpdatedRows) {
         display.lastUpdatedRows.forEach(ri => {
           for (let ci = 0; ci < 5; ci++) {
-            flash(`sr-cell-${ri}-${ci}`);
+            flashCell(`sr-cell-${ri}-${ci}`);
           }
         });
       }
+      // Q values are derived from M · w, so both may shift on any step.
+      const Q = simState.srQ;
+      flashBar(`qbar-red-sr`, Q.red);
+      flashBar(`qbar-green-sr`, Q.green);
     }
   }
 }
@@ -669,7 +709,7 @@ export class QValueChart {
     const xMax = Math.max(simState.globalTrial, 20);
 
     const x = d3.scaleLinear().domain([0, xMax]).range([0, innerW]);
-    const y = d3.scaleLinear().domain([0, 1]).range([innerH, 0]);
+    const y = d3.scaleLinear().domain([-1, 1]).range([innerH, 0]);
 
     // Dynamic phase regions from phaseHistory
     const phaseColorMap = {
@@ -708,6 +748,13 @@ export class QValueChart {
         .attr('font-weight', 600)
         .text(phaseShortLabel[entry.phaseId]);
     });
+
+    // Horizontal y=0 reference line so the sign of each Q value is obvious.
+    g.append('line')
+      .attr('x1', 0).attr('x2', innerW)
+      .attr('y1', y(0)).attr('y2', y(0))
+      .attr('stroke', COLORS.border)
+      .attr('stroke-width', 1);
 
     // Dashed vertical lines at phase switches (skip the first one at trial 0)
     phaseHistory.slice(1).forEach((entry) => {
