@@ -101,6 +101,12 @@ export class MFAgent {
     return { red: this.Q_choice.red, green: this.Q_choice.green };
   }
 
+  // Values of the two chef (intermediate) states. Used to pick which chef the
+  // agent visits during revaluation phases.
+  getPlanetValues() {
+    return { red: this.Q_planet.red, green: this.Q_planet.green };
+  }
+
   getPreferredAction() {
     return this.Q_choice.red >= this.Q_choice.green ? 'red' : 'green';
   }
@@ -203,6 +209,14 @@ export class MBAgent {
 
   getQValues() {
     return this._computeQ();
+  }
+
+  // Values of the two chef states under the current model + reward weights.
+  getPlanetValues() {
+    return {
+      red: this.T_planet.red.apple * this.R.apple + this.T_planet.red.salad * this.R.salad,
+      green: this.T_planet.green.apple * this.R.apple + this.T_planet.green.salad * this.R.salad,
+    };
   }
 
   getPreferredAction() {
@@ -385,6 +399,14 @@ export class SRAgent {
 
   getQValues() {
     return this._computeQ();
+  }
+
+  // Values of the two chef states: each chef-row's SR dotted with w.
+  getPlanetValues() {
+    return {
+      red: this._dot(this.M_planet_red, this.w),
+      green: this._dot(this.M_planet_green, this.w),
+    };
   }
 
   getPreferredAction() {

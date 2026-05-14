@@ -3,6 +3,7 @@
 import {
   STATES,
   getNextState, getReward,
+  softmax, sampleAction,
   TRANSITION_BASELINE, TRANSITION_SWAPPED,
 } from './task.js';
 import { MFAgent, MBAgent, SRAgent, PARAMS } from './algorithms.js';
@@ -29,7 +30,6 @@ export const PHASE_MODES = {
       sim.currentTransitions = sim.currentTransitions === TRANSITION_BASELINE
         ? TRANSITION_SWAPPED
         : TRANSITION_BASELINE;
-      sim.nextPlanetIndex = 0;
     },
   },
   outcome_reval: {
@@ -40,7 +40,6 @@ export const PHASE_MODES = {
     // Toggle goal on each entry so re-clicking the tab re-applies a revaluation.
     onEnter: (sim) => {
       sim.currentGoal = sim.currentGoal === 'apple' ? 'salad' : 'apple';
-      sim.nextPlanetIndex = 0;
     },
   },
 };
@@ -66,8 +65,6 @@ export class Simulation {
     this.phaseHistory = [{ trial: 0, phaseId: 'choice' }];
     this.stepLog = [];
     this.done = false;
-    // Alternates 0 (red planet) / 1 (green planet/house) during revaluation phases.
-    this.nextPlanetIndex = 0;
     // Which agent drives the policy during Choice Phase. Updated from main.js
     // whenever the algorithm toggle changes.
     this.activeAlgo = 'mf';
@@ -114,7 +111,6 @@ export class Simulation {
     this.phaseHistory = [{ trial: 0, phaseId: 'choice' }];
     this.stepLog = [];
     this.done = false;
-    this.nextPlanetIndex = 0;
     this._recordHistory();
   }
 
@@ -207,9 +203,13 @@ export class Simulation {
   }
 
   _stepFromPlanets(goal, transitions) {
-    // Alternate between red planet and green planet (house) across steps.
-    const planetKey = this.nextPlanetIndex === 0 ? 'red' : 'green';
-    this.nextPlanetIndex = 1 - this.nextPlanetIndex;
+    // Which chef the agent visits is a policy decision based on the active
+    // algorithm's value estimates for the two chef (intermediate) states.
+    const activeAgent = this.activeAlgo === 'mb' ? this.mb
+      : this.activeAlgo === 'sr' ? this.sr
+      : this.mf;
+    const planetVals = activeAgent.getPlanetValues();
+    const planetKey = sampleAction(softmax(planetVals, PARAMS.beta));
 
     const planetState = planetKey === 'red' ? STATES.S_RED_PLANET : STATES.S_GREEN_PLANET;
     const terminalState = getNextState(planetState, null, transitions);
