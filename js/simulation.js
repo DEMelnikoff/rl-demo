@@ -5,7 +5,7 @@ import {
   getNextState, getReward,
   TRANSITION_BASELINE, TRANSITION_SWAPPED,
 } from './task.js';
-import { MFAgent, MBAgent, SRAgent } from './algorithms.js';
+import { MFAgent, MBAgent, SRAgent, PARAMS } from './algorithms.js';
 
 // ─── Phase modes (user-selectable at any time) ───────────────────────────────
 
@@ -71,6 +71,9 @@ export class Simulation {
     // Which agent drives the policy during Choice Phase. Updated from main.js
     // whenever the algorithm toggle changes.
     this.activeAlgo = 'mf';
+    // Seed history with the pre-learning state at trial 0, so the chart has a
+    // starting point and the line draws as soon as the first trial completes.
+    this._recordHistory();
   }
 
   get currentPhase() {
@@ -112,6 +115,16 @@ export class Simulation {
     this.stepLog = [];
     this.done = false;
     this.nextPlanetIndex = 0;
+    this._recordHistory();
+  }
+
+  _recordHistory() {
+    const mfQ = this.mf.getQValues();
+    const mbQ = this.mb.getQValues();
+    const srQ = this.sr.getQValues();
+    this.history.mf.push({ trial: this.globalTrial, Qred: mfQ.red, Qgreen: mfQ.green });
+    this.history.mb.push({ trial: this.globalTrial, Qred: mbQ.red, Qgreen: mbQ.green });
+    this.history.sr.push({ trial: this.globalTrial, Qred: srQ.red, Qgreen: srQ.green });
   }
 
   step() {
@@ -134,14 +147,8 @@ export class Simulation {
       stepDesc = this._stepFromPlanets(goal, transitions);
     }
 
-    const mfQ = this.mf.getQValues();
-    const mbQ = this.mb.getQValues();
-    const srQ = this.sr.getQValues();
-    this.history.mf.push({ trial: this.globalTrial, Qred: mfQ.red, Qgreen: mfQ.green });
-    this.history.mb.push({ trial: this.globalTrial, Qred: mbQ.red, Qgreen: mbQ.green });
-    this.history.sr.push({ trial: this.globalTrial, Qred: srQ.red, Qgreen: srQ.green });
-
     this.globalTrial++;
+    this._recordHistory();
 
     this.stepLog.unshift(stepDesc);
     if (this.stepLog.length > 5) this.stepLog.pop();
@@ -175,11 +182,14 @@ export class Simulation {
     updates.mb.terminalState = terminalState;
     updates.mb.reward = reward;
 
-    // SR: backward TD update of M_planet then M_choice, plus reward weights
-    const planetUpdate = this.sr.updateFromPlanet(planetKey, terminalState);
-    const choiceUpdate = this.sr.updateFromChoice(action);
+    // SR: full-trial TD(λ) update over the visited trajectory + reward weights
+    const srTrial = this.sr.updateFromChoiceTrial(action, planetKey, terminalState);
     const wUpdate = this.sr.updateW(terminalState, reward);
-    updates.sr = { choiceUpdate, planetUpdate, wUpdate, terminalState, reward, action };
+    updates.sr = {
+      choiceUpdate: srTrial.choiceUpdate,
+      planetUpdate: srTrial.planetUpdate,
+      wUpdate, terminalState, reward, action,
+    };
 
     return {
       type: 'choice',
@@ -265,6 +275,7 @@ export class Simulation {
       history: this.history,
       phaseHistory: this.phaseHistory,
       stepLog: this.stepLog,
+      beta: PARAMS.beta,
     };
   }
 }

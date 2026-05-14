@@ -224,12 +224,26 @@ html, body {
 
 .chart-legend {
   display: flex;
-  gap: 22px;
+  gap: 16px;
   margin-top: 8px;
   flex-wrap: wrap;
   font-size: 14px;
   font-weight: 600;
 }
+
+.legend-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 4px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  opacity: 0.35;
+  transition: opacity 0.15s, background 0.15s;
+}
+.legend-toggle.active { opacity: 1; }
+.legend-toggle:hover  { background: rgba(255,255,255,0.05); }
 
 /* ─── Done Banner ────────────────────────────────────────────────────────── */
 
@@ -665,6 +679,19 @@ html, body {
 
 .task-node { transition: filter 0.3s, opacity 0.3s; }
 .task-node.faded { opacity: 0.25; }
+
+/* Reward popup — bounces out of the terminal node when reached. */
+@keyframes rewardPop {
+  0%   { opacity: 0; transform: translateY(0)    scale(0.6); }
+  20%  { opacity: 1; transform: translateY(-12px) scale(1.35); }
+  55%  { opacity: 1; transform: translateY(-22px) scale(1.0); }
+  100% { opacity: 0; transform: translateY(-40px) scale(0.85); }
+}
+#reward-popup-red, #reward-popup-green {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.reward-popup-active { animation: rewardPop 1.0s ease-out; }
 
 /* ─── Settings overlay ───────────────────────────────────────────────────── */
 

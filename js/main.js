@@ -9,6 +9,7 @@ const PARAM_SPECS = [
   { key: 'alpha_mf', decimals: 2 },
   { key: 'alpha_mb', decimals: 2 },
   { key: 'alpha_sr', decimals: 2 },
+  { key: 'lambda',   decimals: 2 },
   { key: 'beta',     decimals: 1 },
   { key: 'gamma',    decimals: 2 },
 ];
@@ -107,7 +108,7 @@ function showDoneMessage() {
   const banner = document.getElementById('done-banner');
   if (!banner) return;
 
-  const choiceEmoji = (c) => c === 'red' ? '🚀' : '🚗';
+  const choiceEmoji = (c) => c === 'red' ? '⬆️' : '⬇️';
 
   banner.innerHTML = `
     <div class="done-banner-inner">
@@ -244,6 +245,17 @@ function attachEventListeners() {
 
   // Settings overlay
   attachSettingsListeners();
+
+  // Chart-legend toggles — let the user hide/show each algo's trajectory
+  document.querySelectorAll('.legend-toggle').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const algo = btn.dataset.algo;
+      const on = !btn.classList.contains('active');
+      btn.classList.toggle('active', on);
+      qChart.setVisible(algo, on);
+      qChart.render(sim.getState());
+    });
+  });
 }
 
 // ─── Settings Overlay ─────────────────────────────────────────────────────────
@@ -280,8 +292,10 @@ function attachSettingsListeners() {
       const v = parseFloat(e.target.value);
       PARAMS[key] = v;
       if (valEl) valEl.textContent = v.toFixed(decimals);
-      // Re-render so MB/SR Q values (computed live from PARAMS.gamma) refresh.
+      // Re-render so MB/SR Q values (computed live from PARAMS.gamma) refresh,
+      // and so the chart's P(North) updates if β changed.
       algoPanel.render(currentAlgo, sim.getState());
+      qChart.render(sim.getState());
     });
   });
 
@@ -289,6 +303,7 @@ function attachSettingsListeners() {
     Object.assign(PARAMS, PARAM_DEFAULTS);
     syncInputs();
     algoPanel.render(currentAlgo, sim.getState());
+    qChart.render(sim.getState());
   });
 
   syncInputs();

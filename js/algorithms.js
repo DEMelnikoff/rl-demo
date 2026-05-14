@@ -6,10 +6,13 @@ import { STATES, N_STATES, ACTIONS, oneHot, softmax, sampleAction } from './task
 // agent step picks up the new values automatically.
 export const PARAMS = {
   alpha_mf: 0.3,
-  alpha_mb: 0.5,
+  alpha_mb: 0.3,
   alpha_sr: 0.3,
-  beta: 5,
+  beta: 1.0,
   gamma: 1.0,
+  // Eligibility-trace decay used by MF and SR. λ=0 is one-step TD (lag);
+  // λ=1 propagates each TD error along the full visited trajectory in one trial.
+  lambda: 1.0,
 };
 
 // ─── Model-Free Agent ──────────────────────────────────────────────────────────
@@ -40,18 +43,23 @@ export class MFAgent {
   update(action, planetKey, reward) {
     const alpha = PARAMS.alpha_mf;
     const gamma = PARAMS.gamma;
+    const lambda = PARAMS.lambda;
 
     const oldQplanet = this.Q_planet[planetKey];
     const oldQchoice = this.Q_choice[action];
 
-    // Step 1: update planet Q value (reward is received at terminal — planet bootstraps to it)
-    const deltaplanet = reward - oldQplanet;
-    this.Q_planet[planetKey] += alpha * deltaplanet;
+    // Step 1 (S_choice → S_planet, no immediate reward): TD error bootstraps from
+    // the planet's CURRENT estimate (pre-update). Eligibility trace for the
+    // choice-action is 1 (just visited).
+    const delta1 = gamma * oldQplanet - oldQchoice;
+    this.Q_choice[action] += alpha * delta1;
 
-    // Step 2: update choice Q value — bootstrap from planet (no immediate reward at choice step)
-    const tdTarget = gamma * this.Q_planet[planetKey];
-    const deltachoice = tdTarget - oldQchoice;
-    this.Q_choice[action] += alpha * deltachoice;
+    // Step 2 (S_planet → terminal, reward r): TD error reflects the reward.
+    // The planet trace is now 1; the choice trace has decayed once to γ·λ. So
+    // BOTH state-values feel this δ — the choice state directly, scaled by γ·λ.
+    const delta2 = reward - oldQplanet;
+    this.Q_planet[planetKey] += alpha * delta2;
+    this.Q_choice[action] += alpha * delta2 * gamma * lambda;
 
     this.lastUpdate = {
       planetKey,
@@ -59,10 +67,10 @@ export class MFAgent {
       reward,
       oldQplanet,
       newQplanet: this.Q_planet[planetKey],
-      deltaplanet,
+      deltaplanet: delta2,
       oldQchoice,
       newQchoice: this.Q_choice[action],
-      deltachoice,
+      deltachoice: delta1,
     };
 
     return this.lastUpdate;
@@ -160,14 +168,17 @@ export class MBAgent {
   }
 
   /**
-   * Update planet→outcome transition model.
+   * Update planet→outcome transition model. Delta-rule on both outcomes:
+   * the observed one moves toward 1, the unobserved toward 0. Starting from
+   * 0/0, this correctly grows belief in the observed transition without
+   * spuriously inflating its complement.
    */
   update(planetKey, outcomeKey, reward) {
     const otherOutcome = outcomeKey === 'apple' ? 'salad' : 'apple';
     const oldT = this.T_planet[planetKey][outcomeKey];
 
     this.T_planet[planetKey][outcomeKey] += PARAMS.alpha_mb * (1 - this.T_planet[planetKey][outcomeKey]);
-    this.T_planet[planetKey][otherOutcome] = 1 - this.T_planet[planetKey][outcomeKey];
+    this.T_planet[planetKey][otherOutcome] += PARAMS.alpha_mb * (0 - this.T_planet[planetKey][otherOutcome]);
 
     this.lastUpdate = {
       planetKey,
@@ -181,12 +192,13 @@ export class MBAgent {
 
   /**
    * Update rocket→planet transition model (only happens on choice trials).
+   * Same delta-rule structure as planet→outcome.
    */
   updateRocket(rocketKey, planetKey) {
     const planetState = planetKey + '_planet'; // 'red_planet' or 'green_planet'
     const otherPlanet = planetState === 'red_planet' ? 'green_planet' : 'red_planet';
     this.T_rocket[rocketKey][planetState] += PARAMS.alpha_mb * (1 - this.T_rocket[rocketKey][planetState]);
-    this.T_rocket[rocketKey][otherPlanet] = 1 - this.T_rocket[rocketKey][planetState];
+    this.T_rocket[rocketKey][otherPlanet]  += PARAMS.alpha_mb * (0 - this.T_rocket[rocketKey][otherPlanet]);
   }
 
   getQValues() {
@@ -260,8 +272,53 @@ export class SRAgent {
   }
 
   /**
-   * Update SR when taking rocket action from S_choice.
-   * action: 'red' | 'green'
+   * Full-trial SR update for the Choice Phase, using forward-view TD(λ).
+   * Both rows (action and planet) are updated from the same trajectory:
+   *   action row:  step-1 bootstrap (using OLD M_planet) + γ·λ × step-2 TD error
+   *   planet row:  step-2 TD error
+   * At λ=1 (with γ=1) the action row converges to the full visited-state count
+   * e[choice] + e[planet] + e[terminal], matching Monte Carlo SR.
+   */
+  updateFromChoiceTrial(action, planetKey, terminalState) {
+    const alpha = PARAMS.alpha_sr;
+    const gamma = PARAMS.gamma;
+    const lambda = PARAMS.lambda;
+
+    const actionRow = action === 'red' ? 'M_red' : 'M_green';
+    const planetRow = planetKey === 'red' ? 'M_planet_red' : 'M_planet_green';
+    const M_action = this[actionRow];
+    const M_planet = this[planetRow];
+
+    const eChoice = oneHot(STATES.S_CHOICE);
+    const ePlanet = oneHot(planetKey === 'red' ? STATES.S_RED_PLANET : STATES.S_GREEN_PLANET);
+    const eTerminal = oneHot(terminalState);
+
+    const oldM_action = M_action.slice();
+    const oldM_planet = M_planet.slice();
+
+    // Step 1 TD error (bootstrap off OLD planet row, no reward).
+    // Step 2 TD error (planet row → terminal observation).
+    for (let i = 0; i < N_STATES; i++) {
+      const delta1 = eChoice[i] + gamma * oldM_planet[i] - oldM_action[i];
+      const delta2 = ePlanet[i] + gamma * eTerminal[i] - oldM_planet[i];
+      M_action[i] += alpha * (delta1 + gamma * lambda * delta2);
+      M_planet[i] += alpha * delta2;
+    }
+
+    this.lastUpdatedRows = [
+      action === 'red' ? 0 : 1,
+      planetKey === 'red' ? 2 : 3,
+    ];
+
+    return {
+      choiceUpdate: { row: actionRow, oldM: oldM_action, newM: M_action.slice() },
+      planetUpdate: { row: planetRow, oldM: oldM_planet, newM: M_planet.slice() },
+    };
+  }
+
+  /**
+   * Update SR when taking rocket action from S_choice (legacy; kept for compat).
+   * Use updateFromChoiceTrial for full-trial TD(λ).
    */
   updateFromChoice(action) {
     const alpha = PARAMS.alpha_sr;

@@ -54,6 +54,15 @@
       </div>
 
       <div class="settings-group">
+        <h3>Credit assignment</h3>
+        <div class="settings-row">
+          <label for="param-lambda">λ (eligibility trace, MF + SR)</label>
+          <input type="range" id="param-lambda" min="0" max="1" step="0.05"/>
+          <span class="settings-val" id="param-lambda-val">1.00</span>
+        </div>
+      </div>
+
+      <div class="settings-group">
         <h3>Policy</h3>
         <div class="settings-row">
           <label for="param-beta">β (softmax inverse temperature)</label>
@@ -78,7 +87,7 @@
 
   <!-- ── Full-width Task Diagram ──────────────────────────────────────────────── -->
   <div class="card task-card">
-    <div class="card-title">Task Structure</div>
+    <div class="card-title">True World Structure</div>
     <div id="task-diagram"></div>
   </div>
 
@@ -107,6 +116,7 @@
   <div class="bottom-grid">
 
     <div class="card algo-card">
+      <div class="card-title">Internal Representations</div>
       <div class="algo-toggle" id="algo-toggle">
         <button class="algo-toggle-btn active" data-algo="mf">Model-Free</button>
         <button class="algo-toggle-btn" data-algo="mb">Model-Based</button>
@@ -116,12 +126,12 @@
     </div>
 
     <div class="card chart-card">
-      <div class="card-title">Q(🚀) over time</div>
+      <div class="card-title">P(⬆️) over time</div>
       <div id="q-chart"></div>
-      <div class="chart-legend">
-        <span style="color:#F59E0B">─── MF</span>
-        <span style="color:#3B82F6">─── MB</span>
-        <span style="color:#10B981">─── SR</span>
+      <div class="chart-legend" id="chart-legend">
+        <button class="legend-toggle active" data-algo="mf" style="color:#F59E0B">─── MF</button>
+        <button class="legend-toggle active" data-algo="mb" style="color:#3B82F6">─── MB</button>
+        <button class="legend-toggle active" data-algo="sr" style="color:#10B981">─── SR</button>
       </div>
     </div>
 

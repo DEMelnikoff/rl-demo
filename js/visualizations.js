@@ -38,7 +38,7 @@ export class TaskDiagram {
 
   _render() {
     this.container.innerHTML = `
-      <svg id="task-svg" viewBox="0 0 900 300" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;">
+      <svg id="task-svg" viewBox="0 0 760 300" preserveAspectRatio="xMidYMid meet" style="width:100%;height:100%;">
         <defs>
           <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="4" orient="auto">
             <path d="M0,0 L0,8 L10,4 z" fill="#475569"/>
@@ -51,11 +51,11 @@ export class TaskDiagram {
           </marker>
         </defs>
 
-        <!-- Top chain (rocket → planet → apple) — blue -->
+        <!-- Top chain (north → Chef Nancy → taco) — blue -->
         <g id="node-red-rocket" class="task-node" transform="translate(85,75)">
           <circle r="45" fill="#1E293B" stroke="#3B82F6" stroke-width="2.5"/>
-          <text text-anchor="middle" dominant-baseline="central" font-size="38">🚀</text>
-          <text y="65" text-anchor="middle" font-size="16" fill="#CBD5E1">rocket</text>
+          <text text-anchor="middle" dominant-baseline="central" font-size="38">⬆️</text>
+          <text y="65" text-anchor="middle" font-size="16" fill="#CBD5E1">North</text>
         </g>
 
         <line id="arrow-red-rocket-to-planet" x1="135" y1="75" x2="295" y2="75"
@@ -63,8 +63,8 @@ export class TaskDiagram {
 
         <g id="node-red-planet" class="task-node" transform="translate(345,75)">
           <circle r="45" fill="#1E293B" stroke="#3B82F6" stroke-width="2.5"/>
-          <text text-anchor="middle" dominant-baseline="central" font-size="38">🪐</text>
-          <text y="65" text-anchor="middle" font-size="16" fill="#CBD5E1">planet</text>
+          <text text-anchor="middle" dominant-baseline="central" font-size="38">👩🏾‍🍳</text>
+          <text y="65" text-anchor="middle" font-size="16" fill="#CBD5E1">Chef Nancy's</text>
         </g>
 
         <line id="arrow-red-to-apple" x1="395" y1="75" x2="555" y2="75"
@@ -74,17 +74,18 @@ export class TaskDiagram {
 
         <g id="node-apple" class="task-node" transform="translate(605,75)">
           <circle r="45" fill="#1E293B" stroke="#3B82F6" stroke-width="2.5"/>
-          <text text-anchor="middle" dominant-baseline="central" font-size="38">🍎</text>
-          <text y="65" text-anchor="middle" font-size="16" fill="#CBD5E1">apple</text>
+          <text text-anchor="middle" dominant-baseline="central" font-size="38">🌮</text>
+          <text y="65" text-anchor="middle" font-size="16" fill="#CBD5E1">Mexican</text>
         </g>
 
-        <text id="reward-label-red" x="700" y="80" text-anchor="start" font-size="18" fill="#94A3B8">r = <tspan id="reward-val-red" font-weight="bold" fill="#22C55E">1.0</tspan></text>
+        <!-- Reward popup (top chain) — invisible until a terminal is reached, then animated. -->
+        <text id="reward-popup-red" x="605" y="40" text-anchor="middle" font-size="26" font-weight="bold" fill="#22C55E" opacity="0">+1.0</text>
 
-        <!-- Bottom chain (car → house → salad) — purple -->
+        <!-- Bottom chain (south → Chef Joe → spaghetti) — purple -->
         <g id="node-green-rocket" class="task-node" transform="translate(85,225)">
           <circle r="45" fill="#1E293B" stroke="#A855F7" stroke-width="2.5"/>
-          <text text-anchor="middle" dominant-baseline="central" font-size="38">🚗</text>
-          <text y="65" text-anchor="middle" font-size="16" fill="#CBD5E1">car</text>
+          <text text-anchor="middle" dominant-baseline="central" font-size="38">⬇️</text>
+          <text y="65" text-anchor="middle" font-size="16" fill="#CBD5E1">South</text>
         </g>
 
         <line id="arrow-green-rocket-to-planet" x1="135" y1="225" x2="295" y2="225"
@@ -92,8 +93,8 @@ export class TaskDiagram {
 
         <g id="node-green-planet" class="task-node" transform="translate(345,225)">
           <circle r="45" fill="#1E293B" stroke="#A855F7" stroke-width="2.5"/>
-          <text text-anchor="middle" dominant-baseline="central" font-size="38">🏠</text>
-          <text y="65" text-anchor="middle" font-size="16" fill="#CBD5E1">house</text>
+          <text text-anchor="middle" dominant-baseline="central" font-size="38">👨🏼‍🍳</text>
+          <text y="65" text-anchor="middle" font-size="16" fill="#CBD5E1">Chef Joe's</text>
         </g>
 
         <line id="arrow-green-to-salad" x1="395" y1="225" x2="555" y2="225"
@@ -103,15 +104,15 @@ export class TaskDiagram {
 
         <g id="node-salad" class="task-node" transform="translate(605,225)">
           <circle r="45" fill="#1E293B" stroke="#A855F7" stroke-width="2.5"/>
-          <text text-anchor="middle" dominant-baseline="central" font-size="38">🥗</text>
-          <text y="65" text-anchor="middle" font-size="16" fill="#CBD5E1">salad</text>
+          <text text-anchor="middle" dominant-baseline="central" font-size="38">🍝</text>
+          <text y="65" text-anchor="middle" font-size="16" fill="#CBD5E1">Italian</text>
         </g>
 
-        <text id="reward-label-green" x="700" y="230" text-anchor="start" font-size="18" fill="#94A3B8">r = <tspan id="reward-val-green" font-weight="bold" fill="#EF4444">-1.0</tspan></text>
+        <!-- Reward popup (bottom chain) -->
+        <text id="reward-popup-green" x="605" y="190" text-anchor="middle" font-size="26" font-weight="bold" fill="#EF4444" opacity="0">-1.0</text>
 
-        <!-- Goal label (bigger) -->
-        <text id="goal-label" x="830" y="125" text-anchor="middle" font-size="20" fill="#94A3B8">goal:</text>
-        <text id="goal-value" x="830" y="185" text-anchor="middle" font-size="56">🍎</text>
+        <!-- Goal star — positioned next to whichever terminal is the preferred one. -->
+        <text id="goal-star" x="700" y="75" text-anchor="middle" dominant-baseline="central" font-size="64">⭐</text>
       </svg>
     `;
 
@@ -139,25 +140,24 @@ export class TaskDiagram {
   }
 
   setGoal(goal) {
-    const goalVal = document.getElementById('goal-value');
-    const rewardValRed = document.getElementById('reward-val-red');
-    const rewardValGreen = document.getElementById('reward-val-green');
-    if (!goalVal) return;
+    const star = document.getElementById('goal-star');
+    if (!star) return;
+    // Park the star next to the preferred terminal node — apple/Mexican (top, y=75)
+    // or salad/Italian (bottom, y=225).
+    star.setAttribute('y', goal === 'apple' ? '75' : '225');
+  }
 
-    goalVal.textContent = goal === 'apple' ? '🍎' : '🥗';
-
-    // In baseline transitions: red→apple, green→salad
-    if (goal === 'apple') {
-      rewardValRed.textContent = '1.0';
-      rewardValRed.setAttribute('fill', '#22C55E');
-      rewardValGreen.textContent = '-1.0';
-      rewardValGreen.setAttribute('fill', '#EF4444');
-    } else {
-      rewardValRed.textContent = '-1.0';
-      rewardValRed.setAttribute('fill', '#EF4444');
-      rewardValGreen.textContent = '1.0';
-      rewardValGreen.setAttribute('fill', '#22C55E');
-    }
+  // Briefly pop a "+1.0" / "-1.0" label above the reached terminal node.
+  // `chain` is 'red' (top) or 'green' (bottom); `reward` is the signed reward value.
+  popReward(chain, reward) {
+    const el = document.getElementById(`reward-popup-${chain}`);
+    if (!el) return;
+    const isPositive = reward >= 0;
+    el.textContent = (isPositive ? '+' : '−') + Math.abs(reward).toFixed(1);
+    el.setAttribute('fill', isPositive ? '#22C55E' : '#EF4444');
+    el.classList.remove('reward-popup-active');
+    void el.getBoundingClientRect();
+    el.classList.add('reward-popup-active');
   }
 
   setTransitions(transitionConfig) {
@@ -236,12 +236,18 @@ export class TaskDiagram {
     const isChoice = stepDesc.type === 'choice';
     const delay = animDelay !== undefined ? animDelay : 250;
 
+    // The reward popup chain is the terminal's vertical row: S_APPLE sits on the
+    // top chain (id 'red'), S_SALAD on the bottom chain (id 'green').
+    const terminalState = stepDesc.animTerminal;
+    const popChain = terminalState === STATES.S_APPLE ? 'red' : 'green';
+    const reward = (
+      (terminalState === STATES.S_APPLE && stepDesc.goal === 'apple') ||
+      (terminalState === STATES.S_SALAD && stepDesc.goal === 'salad')
+    ) ? 1 : -1;
+
     if (isChoice) {
       const action = stepDesc.animAction;
       const rocketId = action === 'red' ? 'node-red-rocket' : 'node-green-rocket';
-      const planetId = action === 'red' ? 'node-red-planet' : 'node-green-planet';
-      const terminalState = stepDesc.animTerminal;
-      const terminalId = terminalState === STATES.S_APPLE ? 'node-apple' : 'node-salad';
 
       this.highlightState(STATES.S_CHOICE, algoColor);
 
@@ -255,15 +261,20 @@ export class TaskDiagram {
       }, 0);
 
       setTimeout(() => { this.highlightState(action === 'red' ? STATES.S_RED_PLANET : STATES.S_GREEN_PLANET, algoColor); }, delay);
-      setTimeout(() => { this.highlightState(terminalState, algoColor); }, delay * 2);
+      setTimeout(() => {
+        this.highlightState(terminalState, algoColor);
+        this.popReward(popChain, reward);
+      }, delay * 2);
       setTimeout(() => { this.highlightState(null, algoColor); if (onComplete) onComplete(); }, delay * 3);
     } else {
       // Revaluation: animate the single planet → terminal transition for this step.
       const planetState = stepDesc.animPlanet;
-      const terminalState = stepDesc.animTerminal;
 
       setTimeout(() => { this.highlightState(planetState, algoColor); }, 0);
-      setTimeout(() => { this.highlightState(terminalState, algoColor); }, delay);
+      setTimeout(() => {
+        this.highlightState(terminalState, algoColor);
+        this.popReward(popChain, reward);
+      }, delay);
       setTimeout(() => { this.highlightState(null, algoColor); if (onComplete) onComplete(); }, delay * 2);
     }
   }
@@ -312,14 +323,14 @@ export class AlgorithmPanel {
     // Q bars are redundant for MF (already in Q-table), so omit for MF
     const qBarsHTML = algo === 'mf' ? '' : `
       <div class="q-value-section">
-        <div class="q-bar-label">Q(🚀)</div>
+        <div class="q-bar-label">Q(⬆️)</div>
         <div class="q-bar-track">
           <div class="q-bar-fill" id="qbar-red-${algo}" style="${this._qBarStyle(Q.red)}"></div>
         </div>
         <span class="q-bar-val">${Q.red.toFixed(3)}</span>
       </div>
       <div class="q-value-section">
-        <div class="q-bar-label">Q(🚗)</div>
+        <div class="q-bar-label">Q(⬇️)</div>
         <div class="q-bar-track">
           <div class="q-bar-fill" id="qbar-green-${algo}" style="${this._qBarStyle(Q.green)}"></div>
         </div>
@@ -360,28 +371,28 @@ export class AlgorithmPanel {
         <div class="repr-title">Q-Table</div>
         <div class="mf-qtable">
           <div class="qtable-row">
-            <span class="qtable-label">Q(🚀)</span>
+            <span class="qtable-label">Q(⬆️)</span>
             <div class="qtable-bar-track">
               <div class="qtable-bar-fill" id="mf-qchoice-red" style="${bar(Q_choice.red)}"></div>
             </div>
             <span class="qtable-val" id="mf-qchoice-red-val">${Q_choice.red.toFixed(3)}</span>
           </div>
           <div class="qtable-row">
-            <span class="qtable-label">Q(🚗)</span>
+            <span class="qtable-label">Q(⬇️)</span>
             <div class="qtable-bar-track">
               <div class="qtable-bar-fill" id="mf-qchoice-green" style="${bar(Q_choice.green)}"></div>
             </div>
             <span class="qtable-val" id="mf-qchoice-green-val">${Q_choice.green.toFixed(3)}</span>
           </div>
           <div class="qtable-row">
-            <span class="qtable-label">Q(🪐)</span>
+            <span class="qtable-label">Q(👩🏾‍🍳)</span>
             <div class="qtable-bar-track">
               <div class="qtable-bar-fill" id="mf-qplanet-red" style="${bar(Q_planet.red)}"></div>
             </div>
             <span class="qtable-val" id="mf-qplanet-red-val">${Q_planet.red.toFixed(3)}</span>
           </div>
           <div class="qtable-row">
-            <span class="qtable-label">Q(🏠)</span>
+            <span class="qtable-label">Q(👨🏼‍🍳)</span>
             <div class="qtable-bar-track">
               <div class="qtable-bar-fill" id="mf-qplanet-green" style="${bar(Q_planet.green)}"></div>
             </div>
@@ -398,19 +409,19 @@ export class AlgorithmPanel {
     const probBg = (v) => `rgba(16,185,129,${Math.min(1, Math.max(0, v)) * 0.8})`;
     return `
       <div class="repr-section">
-        <div class="repr-title">Transition Matrix: Vehicles → Locations</div>
+        <div class="repr-title">Transition Matrix: Exits → Chefs</div>
         <div class="mb-grid">
           <div class="mb-grid-header"></div>
-          <div class="mb-grid-header">to 🪐</div>
-          <div class="mb-grid-header">to 🏠</div>
-          <div class="mb-grid-label">from 🚀</div>
+          <div class="mb-grid-header">to 👩🏾‍🍳</div>
+          <div class="mb-grid-header">to 👨🏼‍🍳</div>
+          <div class="mb-grid-label">from ⬆️</div>
           <div class="mb-cell" id="mb-Tr-red-red" style="background:${probBg(T_rocket.red.red_planet)}">
             <span>${T_rocket.red.red_planet.toFixed(2)}</span>
           </div>
           <div class="mb-cell" id="mb-Tr-red-green" style="background:${probBg(T_rocket.red.green_planet)}">
             <span>${T_rocket.red.green_planet.toFixed(2)}</span>
           </div>
-          <div class="mb-grid-label">from 🚗</div>
+          <div class="mb-grid-label">from ⬇️</div>
           <div class="mb-cell" id="mb-Tr-green-red" style="background:${probBg(T_rocket.green.red_planet)}">
             <span>${T_rocket.green.red_planet.toFixed(2)}</span>
           </div>
@@ -419,19 +430,19 @@ export class AlgorithmPanel {
           </div>
         </div>
 
-        <div class="repr-title" style="margin-top:14px">Transition Matrix: Locations → Resources</div>
+        <div class="repr-title" style="margin-top:14px">Transition Matrix: Chefs → Foods</div>
         <div class="mb-grid">
           <div class="mb-grid-header"></div>
-          <div class="mb-grid-header">to 🍎</div>
-          <div class="mb-grid-header">to 🥗</div>
-          <div class="mb-grid-label">from 🪐</div>
+          <div class="mb-grid-header">to 🌮</div>
+          <div class="mb-grid-header">to 🍝</div>
+          <div class="mb-grid-label">from 👩🏾‍🍳</div>
           <div class="mb-cell" id="mb-T-red-apple" style="background:${probBg(T_planet.red.apple)}">
             <span>${T_planet.red.apple.toFixed(2)}</span>
           </div>
           <div class="mb-cell" id="mb-T-red-salad" style="background:${probBg(T_planet.red.salad)}">
             <span>${T_planet.red.salad.toFixed(2)}</span>
           </div>
-          <div class="mb-grid-label">from 🏠</div>
+          <div class="mb-grid-label">from 👨🏼‍🍳</div>
           <div class="mb-cell" id="mb-T-green-apple" style="background:${probBg(T_planet.green.apple)}">
             <span>${T_planet.green.apple.toFixed(2)}</span>
           </div>
@@ -451,14 +462,14 @@ export class AlgorithmPanel {
       <div class="repr-title" style="margin-top:12px">Reward Values (goal-based)</div>
       <div class="mf-qtable">
         <div class="qtable-row">
-          <span class="qtable-label">R(🍎)</span>
+          <span class="qtable-label">R(🌮)</span>
           <div class="qtable-bar-track">
             <div class="qtable-bar-fill" style="${this._qBarStyle(R.apple)}"></div>
           </div>
           <span class="qtable-val" style="color:${rColor(R.apple)}">${R.apple.toFixed(0)}</span>
         </div>
         <div class="qtable-row">
-          <span class="qtable-label">R(🥗)</span>
+          <span class="qtable-label">R(🍝)</span>
           <div class="qtable-bar-track">
             <div class="qtable-bar-fill" style="${this._qBarStyle(R.salad)}"></div>
           </div>
@@ -470,9 +481,9 @@ export class AlgorithmPanel {
 
   _buildSRPanel(display, Q) {
     const { M_red, M_green, M_planet_red, M_planet_green, w, lastUpdatedRows } = display;
-    const rowLabels = ['from 🚀', 'from 🚗', 'from 🪐', 'from 🏠'];
-    // Skip S_choice column (index 0) — show only planet and terminal states
-    const colLabels = ['to 🪐', 'to 🏠', 'to 🍎', 'to 🥗'];
+    const rowLabels = ['from ⬆️', 'from ⬇️', 'from 👩🏾‍🍳', 'from 👨🏼‍🍳'];
+    // Skip S_choice column (index 0) — show only chef and food states
+    const colLabels = ['to 👩🏾‍🍳', 'to 👨🏼‍🍳', 'to 🌮', 'to 🍝'];
     const rows = [M_red, M_green, M_planet_red, M_planet_green];
 
     const maxVal = Math.max(1, ...rows.map(r => r.slice(1)).flat(), ...w);
@@ -603,7 +614,7 @@ export class StepLog {
   _buildStepHTML(step, algo, color) {
     const phaseLabel = `Phase ${step.phase + 1}`;
     const trialLabel = `Trial ${step.trial + 1}`;
-    const goalLabel = step.goal === 'apple' ? '🍎 apple' : '🥗 salad';
+    const goalLabel = step.goal === 'apple' ? '🌮 Mexican' : '🍝 Italian';
 
     let updateText = '';
 
@@ -611,13 +622,13 @@ export class StepLog {
       const u = step.updates?.mf;
       if (u && u.planetOnly) {
         updateText = `
-          <div class="step-eq">Q(${u.planetKey} 🪐) ← ${u.oldQplanet.toFixed(3)} + 0.3×(${u.reward} − ${u.oldQplanet.toFixed(3)}) = <strong style="color:${color}">${u.newQplanet.toFixed(3)}</strong></div>
+          <div class="step-eq">Q(chef ${u.planetKey}) ← ${u.oldQplanet.toFixed(3)} + 0.3×(${u.reward} − ${u.oldQplanet.toFixed(3)}) = <strong style="color:${color}">${u.newQplanet.toFixed(3)}</strong></div>
           <div class="step-eq">Q(choice) unchanged — agent did not visit choice state</div>
         `;
       } else if (u && !u.noUpdate) {
         updateText = `
-          <div class="step-eq">Q(${u.planetKey} 🪐) ← ${u.oldQplanet.toFixed(3)} + 0.3×(${u.reward} − ${u.oldQplanet.toFixed(3)}) = <strong style="color:${color}">${u.newQplanet.toFixed(3)}</strong></div>
-          <div class="step-eq">Q(choice, ${u.action} 🚀) ← ${u.oldQchoice.toFixed(3)} + 0.3×(${u.newQplanet.toFixed(3)} − ${u.oldQchoice.toFixed(3)}) = <strong style="color:${color}">${u.newQchoice.toFixed(3)}</strong></div>
+          <div class="step-eq">Q(chef ${u.planetKey}) ← ${u.oldQplanet.toFixed(3)} + 0.3×(${u.reward} − ${u.oldQplanet.toFixed(3)}) = <strong style="color:${color}">${u.newQplanet.toFixed(3)}</strong></div>
+          <div class="step-eq">Q(choice, ${u.action} exit) ← ${u.oldQchoice.toFixed(3)} + 0.3×(${u.newQplanet.toFixed(3)} − ${u.oldQchoice.toFixed(3)}) = <strong style="color:${color}">${u.newQchoice.toFixed(3)}</strong></div>
         `;
       } else {
         updateText = '<div class="step-eq">No update (agent not at choice state)</div>';
@@ -656,7 +667,7 @@ export class StepLog {
       <div class="step-header">
         <span class="step-phase-tag">${phaseLabel}</span>
         <span class="step-trial-tag">${trialLabel}</span>
-        <span class="step-type-tag">${step.type === 'choice' ? '🚀 choice trial' : '🪐 planet trial'}</span>
+        <span class="step-type-tag">${step.type === 'choice' ? '⬆️ choice trial' : '👩🏾‍🍳 chef trial'}</span>
         <span class="step-goal-tag">goal: ${goalLabel}</span>
       </div>
       ${updateText}
@@ -672,7 +683,12 @@ export class QValueChart {
     this.container = document.getElementById(containerId);
     this.svg = null;
     this.margin = { top: 20, right: 20, bottom: 40, left: 50 };
+    this.visible = { mf: true, mb: true, sr: true };
     this._init();
+  }
+
+  setVisible(algo, on) {
+    this.visible[algo] = !!on;
   }
 
   _init() {
@@ -709,7 +725,7 @@ export class QValueChart {
     const xMax = Math.max(simState.globalTrial, 20);
 
     const x = d3.scaleLinear().domain([0, xMax]).range([0, innerW]);
-    const y = d3.scaleLinear().domain([-1, 1]).range([innerH, 0]);
+    const y = d3.scaleLinear().domain([0, 1]).range([innerH, 0]);
 
     // Dynamic phase regions from phaseHistory
     const phaseColorMap = {
@@ -749,11 +765,12 @@ export class QValueChart {
         .text(phaseShortLabel[entry.phaseId]);
     });
 
-    // Horizontal y=0 reference line so the sign of each Q value is obvious.
+    // Horizontal reference line at p=0.5 (indifferent between North and South).
     g.append('line')
       .attr('x1', 0).attr('x2', innerW)
-      .attr('y1', y(0)).attr('y2', y(0))
+      .attr('y1', y(0.5)).attr('y2', y(0.5))
       .attr('stroke', COLORS.border)
+      .attr('stroke-dasharray', '3,3')
       .attr('stroke-width', 1);
 
     // Dashed vertical lines at phase switches (skip the first one at trial 0)
@@ -795,7 +812,7 @@ export class QValueChart {
       .attr('text-anchor', 'middle')
       .attr('fill', COLORS.textMuted)
       .attr('font-size', 14)
-      .text('Q(🚀)');
+      .text('P(⬆️)');
 
     // Lines for each algorithm. MF is drawn LAST so it stays visible on top —
     // with γ=1 and the same trajectory, MF Q_choice and SR Q can coincide exactly.
@@ -805,12 +822,20 @@ export class QValueChart {
       { key: 'mf', color: COLORS.mf, label: 'Model-Free' },
     ];
 
+    // P(North) from the softmax policy: 1 / (1 + exp(β·(Q_south − Q_north))).
+    const beta = simState.beta;
+    const probNorth = (d) => {
+      const diff = d.Qgreen - d.Qred;
+      return 1 / (1 + Math.exp(beta * diff));
+    };
+
     const line = d3.line()
       .x(d => x(d.trial))
-      .y(d => y(d.Qred))
+      .y(d => y(probNorth(d)))
       .curve(d3.curveMonotoneX);
 
     algos.forEach(({ key, color }) => {
+      if (!this.visible[key]) return;
       const data = history[key];
       if (data.length < 1) return;
       const path = g.append('path')
