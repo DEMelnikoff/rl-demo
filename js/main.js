@@ -1,6 +1,6 @@
 // main.js — wires everything together, event handlers, animation loop
 
-import { Simulation, SCENARIOS } from './simulation.js';
+import { Simulation, PHASE_MODES } from './simulation.js';
 import { TaskDiagram, AlgorithmPanel, StepLog, QValueChart, PhaseIndicator, COLORS } from './visualizations.js';
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -30,17 +30,14 @@ function init() {
 function renderAll() {
   const state = sim.getState();
 
-  // Sync diagram to current phase
-  const phase = state.phases[state.currentPhaseIndex] || state.phases[state.phases.length - 1];
-  taskDiagram.setGoal(phase.goal);
-  taskDiagram.setTransitions(phase.transitions);
-  taskDiagram.setPhase2(state.currentPhaseIndex >= 1);
+  // Use simulation's persistent world state, not phase config
+  taskDiagram.setGoal(state.currentGoal);
+  taskDiagram.setTransitions(state.currentTransitions);
+  taskDiagram.setPhase2(!state.currentPhase.agentAtChoice);
   taskDiagram.setAlgoColor(currentAlgo);
 
   algoPanel.render(currentAlgo, state);
-  stepLog.render(state.stepLog, currentAlgo);
   qChart.render(state);
-  phaseIndicator.render(state);
 
   updateControlsUI(state);
 }
@@ -52,26 +49,19 @@ function updateControlsUI(state) {
 
   if (playBtn) {
     playBtn.textContent = isPlaying ? '⏸ Pause' : '▶ Play';
-    playBtn.disabled = state.done;
   }
-  if (nextBtn) nextBtn.disabled = state.done || isAnimating;
+  if (nextBtn) nextBtn.disabled = isAnimating;
   if (resetBtn) resetBtn.disabled = false;
-
-  // Update progress bar
-  const progressEl = document.getElementById('trial-progress');
-  if (progressEl) {
-    const pct = state.totalTrials > 0 ? (state.globalTrial / state.totalTrials) * 100 : 0;
-    progressEl.style.width = `${Math.min(100, pct)}%`;
-  }
 
   const trialCountEl = document.getElementById('trial-count');
   if (trialCountEl) {
-    if (state.done) {
-      trialCountEl.textContent = 'Done — Choice Phase';
-    } else {
-      trialCountEl.textContent = `Phase ${state.currentPhaseIndex + 1} · Trial ${state.trialInPhase + 1} / ${state.phases[state.currentPhaseIndex]?.trials}`;
-    }
+    trialCountEl.textContent = `Trial ${state.globalTrial}`;
   }
+
+  // Highlight active phase tab
+  document.querySelectorAll('.phase-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.phase === state.currentPhaseId);
+  });
 }
 
 // ─── Step Logic ───────────────────────────────────────────────────────────────
@@ -88,30 +78,17 @@ function doStep() {
 
   const state = sim.getState();
 
-  // Update phase diagram config
-  const phaseIdx = Math.min(state.currentPhaseIndex, state.phases.length - 1);
-  const phase = state.phases[phaseIdx] || state.phases[state.phases.length - 1];
-  // Use the STEP's phase config (before incrementing)
-  const stepPhase = sim.scenario.phases[stepDesc.phase] || sim.scenario.phases[sim.scenario.phases.length - 1];
-
-  taskDiagram.setGoal(stepPhase.goal);
-  taskDiagram.setTransitions(stepPhase.transitions);
-  taskDiagram.setPhase2(stepDesc.phase >= 1);
+  taskDiagram.setGoal(state.currentGoal);
+  taskDiagram.setTransitions(state.currentTransitions);
+  taskDiagram.setPhase2(!state.currentPhase.agentAtChoice);
 
   const algoColor = COLORS[currentAlgo];
 
   taskDiagram.animateTrial(stepDesc, algoColor, () => {
     isAnimating = false;
     algoPanel.update(currentAlgo, state, stepDesc);
-    stepLog.render(state.stepLog, currentAlgo);
     qChart.render(state);
-    phaseIndicator.render(state);
     updateControlsUI(state);
-
-    if (state.done) {
-      stopPlay();
-      showDoneMessage();
-    }
   }, animDelay);
 }
 
@@ -120,16 +97,14 @@ function showDoneMessage() {
   const banner = document.getElementById('done-banner');
   if (!banner) return;
 
-  const mfChoice = state.mfChoice === 'red' ? '🔴' : '🟢';
-  const mbChoice = state.mbChoice === 'red' ? '🔴' : '🟢';
-  const srChoice = state.srChoice === 'red' ? '🔴' : '🟢';
+  const choiceEmoji = (c) => c === 'red' ? '🚀' : '🚗';
 
   banner.innerHTML = `
     <div class="done-banner-inner">
       <span class="done-title">Choice Phase</span>
-      <span class="done-item" style="color:${COLORS.mf}">MF: ${mfChoice} ${state.mfChoice}</span>
-      <span class="done-item" style="color:${COLORS.mb}">MB: ${mbChoice} ${state.mbChoice}</span>
-      <span class="done-item" style="color:${COLORS.sr}">SR: ${srChoice} ${state.srChoice}</span>
+      <span class="done-item" style="color:${COLORS.mf}">MF: ${choiceEmoji(state.mfChoice)}</span>
+      <span class="done-item" style="color:${COLORS.mb}">MB: ${choiceEmoji(state.mbChoice)}</span>
+      <span class="done-item" style="color:${COLORS.sr}">SR: ${choiceEmoji(state.srChoice)}</span>
     </div>
   `;
   banner.style.display = 'flex';
@@ -172,19 +147,12 @@ function stopPlay() {
 // ─── Event Listeners ──────────────────────────────────────────────────────────
 
 function attachEventListeners() {
-  // Scenario tabs
-  document.querySelectorAll('.scenario-tab').forEach(tab => {
+  // Phase tabs — switch phase mode at any time. Algorithm state persists.
+  document.querySelectorAll('.phase-tab').forEach(tab => {
     tab.addEventListener('click', () => {
-      const scenarioId = tab.dataset.scenario;
-      if (scenarioId === sim.scenarioId) return;
-
-      stopPlay();
-      hideDoneMessage();
-
-      document.querySelectorAll('.scenario-tab').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-
-      sim.setScenario(scenarioId);
+      const phaseId = tab.dataset.phase;
+      if (phaseId === sim.currentPhaseId) return;
+      sim.setPhase(phaseId);
       renderAll();
     });
   });

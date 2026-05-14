@@ -17,10 +17,10 @@
       <h1>Two-Step RL Task Explorer</h1>
       <p class="subtitle">Model-Free · Model-Based · Successor Representation</p>
     </div>
-    <div class="scenario-tabs" id="scenario-tabs">
-      <button class="scenario-tab active" data-scenario="baseline">Baseline</button>
-      <button class="scenario-tab" data-scenario="transition_reval">Transition Revaluation</button>
-      <button class="scenario-tab" data-scenario="outcome_reval">Outcome Revaluation</button>
+    <div class="phase-tabs" id="phase-tabs">
+      <button class="phase-tab phase-choice active" data-phase="choice">Choice Phase</button>
+      <button class="phase-tab phase-transition" data-phase="transition_reval">Transition Revaluation</button>
+      <button class="phase-tab phase-outcome" data-phase="outcome_reval">Outcome Revaluation</button>
     </div>
   </header>
 
@@ -47,12 +47,12 @@
         </div>
       </div>
       <div class="phase-section">
-        <div id="phase-indicator"></div>
-        <div id="trial-count">Phase 1 · Trial 0 / 50</div>
+        <div id="trial-count">Trial 0</div>
       </div>
     </div>
-    <div class="progress-bar-track"><div id="trial-progress"></div></div>
   </div>
+  <div id="phase-indicator" style="display:none"></div>
+  <div id="trial-progress" style="display:none"></div>
 
   <!-- ── Bottom 2-column: Algorithm Panel | Q Chart ───────────────────────────── -->
   <div class="bottom-grid">
@@ -67,7 +67,7 @@
     </div>
 
     <div class="card chart-card">
-      <div class="card-title">Q(red rocket) over time</div>
+      <div class="card-title">Q(🚀) over time</div>
       <div id="q-chart"></div>
       <div class="chart-legend">
         <span style="color:#F59E0B">─── MF</span>
