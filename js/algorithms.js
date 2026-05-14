@@ -62,6 +62,27 @@ export class MFAgent {
     return this.lastUpdate;
   }
 
+  // Planet-only update for revaluation phases: agent observes planet → terminal → reward
+  // but did not take a choice action, so Q_choice is left alone. This is the mechanism
+  // behind MF failure to revalue — Q_planet shifts but Q_choice doesn't catch up until
+  // the agent visits S_choice again.
+  updatePlanetOnly(planetKey, reward) {
+    const alpha = this.alpha;
+    const oldQplanet = this.Q_planet[planetKey];
+    const deltaplanet = reward - oldQplanet;
+    this.Q_planet[planetKey] += alpha * deltaplanet;
+
+    this.lastUpdate = {
+      planetKey,
+      reward,
+      oldQplanet,
+      newQplanet: this.Q_planet[planetKey],
+      deltaplanet,
+      planetOnly: true,
+    };
+    return this.lastUpdate;
+  }
+
   getQValues() {
     return { red: this.Q_choice.red, green: this.Q_choice.green };
   }

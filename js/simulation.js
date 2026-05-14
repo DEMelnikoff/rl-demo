@@ -208,7 +208,14 @@ export class Simulation {
     const redOutcomeKey = redTerminal === STATES.S_APPLE ? 'apple' : 'salad';
     const greenOutcomeKey = greenTerminal === STATES.S_APPLE ? 'apple' : 'salad';
 
-    updates.mf = { noUpdate: true, redTerminal, greenTerminal, redReward, greenReward };
+    const mfRedUpdate = this.mf.updatePlanetOnly('red', redReward);
+    const mfGreenUpdate = this.mf.updatePlanetOnly('green', greenReward);
+    updates.mf = {
+      planetOnly: true,
+      redUpdate: mfRedUpdate,
+      greenUpdate: mfGreenUpdate,
+      redTerminal, greenTerminal, redReward, greenReward,
+    };
 
     const mbRedUpdate = this.mb.update('red', redOutcomeKey, redReward);
     const mbGreenUpdate = this.mb.update('green', greenOutcomeKey, greenReward);

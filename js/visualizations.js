@@ -509,7 +509,10 @@ export class AlgorithmPanel {
 
     if (algo === 'mf' && stepDesc.updates?.mf) {
       const u = stepDesc.updates.mf;
-      if (!u.noUpdate) {
+      if (u.planetOnly) {
+        flash('mf-qplanet-red');
+        flash('mf-qplanet-green');
+      } else if (!u.noUpdate) {
         flash(`mf-qplanet-${u.planetKey}`);
         flash(`mf-qchoice-${u.action}`);
       }
@@ -578,7 +581,14 @@ export class StepLog {
 
     if (algo === 'mf') {
       const u = step.updates?.mf;
-      if (u && !u.noUpdate) {
+      if (u && u.planetOnly) {
+        const ru = u.redUpdate, gu = u.greenUpdate;
+        updateText = `
+          <div class="step-eq">Q(red 🪐) ← ${ru.oldQplanet.toFixed(3)} + 0.3×(${ru.reward} − ${ru.oldQplanet.toFixed(3)}) = <strong style="color:${color}">${ru.newQplanet.toFixed(3)}</strong></div>
+          <div class="step-eq">Q(green 🪐) ← ${gu.oldQplanet.toFixed(3)} + 0.3×(${gu.reward} − ${gu.oldQplanet.toFixed(3)}) = <strong style="color:${color}">${gu.newQplanet.toFixed(3)}</strong></div>
+          <div class="step-eq">Q(choice) unchanged — agent did not visit choice state</div>
+        `;
+      } else if (u && !u.noUpdate) {
         updateText = `
           <div class="step-eq">Q(${u.planetKey} 🪐) ← ${u.oldQplanet.toFixed(3)} + 0.3×(${u.reward} − ${u.oldQplanet.toFixed(3)}) = <strong style="color:${color}">${u.newQplanet.toFixed(3)}</strong></div>
           <div class="step-eq">Q(choice, ${u.action} 🚀) ← ${u.oldQchoice.toFixed(3)} + 0.3×(${u.newQplanet.toFixed(3)} − ${u.oldQchoice.toFixed(3)}) = <strong style="color:${color}">${u.newQchoice.toFixed(3)}</strong></div>
